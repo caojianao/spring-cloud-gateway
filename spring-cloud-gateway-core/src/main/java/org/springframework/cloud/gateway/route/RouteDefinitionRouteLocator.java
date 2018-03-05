@@ -70,6 +70,7 @@ public class RouteDefinitionRouteLocator implements RouteLocator, BeanFactoryAwa
 
 	private final RouteDefinitionLocator routeDefinitionLocator;
 	private final Map<String, RoutePredicateFactory> predicates = new LinkedHashMap<>();
+	@Deprecated
 	private final Map<String, GatewayFilterFactory> gatewayFilterFactories = new HashMap<>();
 	private final Map<String, Class> gatewayFilters = new HashMap<>();
 	private final GatewayProperties gatewayProperties;
@@ -211,6 +212,7 @@ public class RouteDefinitionRouteLocator implements RouteLocator, BeanFactoryAwa
 		return (T) candidate;
 	}
 
+	@SuppressWarnings("Duplicates")
 	@Deprecated
 	//TODO: make argument resolving a strategy
 	/* for testing */ static Tuple getTuple(ArgumentHints hasArguments, Map<String, String> args, SpelExpressionParser parser, BeanFactory beanFactory) {
@@ -227,29 +229,8 @@ public class RouteDefinitionRouteLocator implements RouteLocator, BeanFactoryAwa
 
 		int entryIdx = 0;
 		for (Map.Entry<String, String> entry : args.entrySet()) {
-			String key = entry.getKey();
-
-			// RoutePredicateFactory has name hints and this has a fake key name
-			// replace with the matching key hint
-			if (key.startsWith(NameUtils.GENERATED_NAME_PREFIX) && !argNames.isEmpty()
-					&& entryIdx < args.size()) {
-				key = argNames.get(entryIdx);
-			}
-
-			Object value;
-			String rawValue = entry.getValue();
-			if (rawValue != null) {
-				rawValue = rawValue.trim();
-			}
-			if (rawValue != null && rawValue.startsWith("#{") && entry.getValue().endsWith("}")) {
-				// assume it's spel
-				StandardEvaluationContext context = new StandardEvaluationContext();
-				context.setBeanResolver(new BeanFactoryResolver(beanFactory));
-				Expression expression = parser.parseExpression(entry.getValue(), new TemplateParserContext());
-				value = expression.getValue(context);
-			} else {
-				value = entry.getValue();
-			}
+			String key = normalizeKey(entry.getKey(), entryIdx, hasArguments, args);
+			Object value = getValue(parser, beanFactory, entry.getValue());
 
 			builder.put(key, value);
 			entryIdx++;
@@ -267,42 +248,48 @@ public class RouteDefinitionRouteLocator implements RouteLocator, BeanFactoryAwa
 		return tuple;
 	}
 
+	private static Object getValue(SpelExpressionParser parser, BeanFactory beanFactory, String entryValue) {
+		Object value;
+		String rawValue = entryValue;
+		if (rawValue != null) {
+            rawValue = rawValue.trim();
+        }
+		if (rawValue != null && rawValue.startsWith("#{") && entryValue.endsWith("}")) {
+            // assume it's spel
+            StandardEvaluationContext context = new StandardEvaluationContext();
+            context.setBeanResolver(new BeanFactoryResolver(beanFactory));
+            Expression expression = parser.parseExpression(entryValue, new TemplateParserContext());
+            value = expression.getValue(context);
+        } else {
+            value = entryValue;
+        }
+		return value;
+	}
+
+	@SuppressWarnings("Duplicates")
 	/* for testing */ static Map<String, Object> getMap(ArgumentHints hasArguments, Map<String, String> args, SpelExpressionParser parser, BeanFactory beanFactory) {
 		Map<String, Object> map = new HashMap<>();
 
-		List<String> argNames = hasArguments.argNames();
-
 		int entryIdx = 0;
 		for (Map.Entry<String, String> entry : args.entrySet()) {
-			String key = entry.getKey();
-
-			// RoutePredicateFactory has name hints and this has a fake key name
-			// replace with the matching key hint
-			if (key.startsWith(NameUtils.GENERATED_NAME_PREFIX) && !argNames.isEmpty()
-					&& entryIdx < args.size() && entryIdx < argNames.size()) {
-				key = argNames.get(entryIdx);
-			}
-
-			Object value;
-			String rawValue = entry.getValue();
-			if (rawValue != null) {
-				rawValue = rawValue.trim();
-			}
-			if (rawValue != null && rawValue.startsWith("#{") && entry.getValue().endsWith("}")) {
-				// assume it's spel
-				StandardEvaluationContext context = new StandardEvaluationContext();
-				context.setBeanResolver(new BeanFactoryResolver(beanFactory));
-				Expression expression = parser.parseExpression(entry.getValue(), new TemplateParserContext());
-				value = expression.getValue(context);
-			} else {
-				value = entry.getValue();
-			}
+			String key = normalizeKey(entry.getKey(), entryIdx, hasArguments, args);
+			Object value = getValue(parser, beanFactory, entry.getValue());
 
 			map.put(key, value);
 			entryIdx++;
 		}
 
 		return map;
+	}
+
+	private static String normalizeKey(String key, int entryIdx, ArgumentHints argHints, Map<String, String> args) {
+		// RoutePredicateFactory has name hints and this has a fake key name
+		// replace with the matching key hint
+		if (key.startsWith(NameUtils.GENERATED_NAME_PREFIX) && !argHints.argNames().isEmpty()
+                && entryIdx < args.size() && entryIdx < argHints.argNames().size()) {
+            key = argHints.argNames().get(entryIdx);
+        }
+		return key;
 	}
 
 	private List<GatewayFilter> getFilters(RouteDefinition routeDefinition) {
