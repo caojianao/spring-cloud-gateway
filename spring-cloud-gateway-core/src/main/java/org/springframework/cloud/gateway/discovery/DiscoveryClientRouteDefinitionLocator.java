@@ -30,7 +30,7 @@ import org.springframework.cloud.gateway.route.RouteDefinitionLocator;
 import static org.springframework.cloud.gateway.filter.factory.RewritePathGatewayFilterFactory.REGEXP_KEY;
 import static org.springframework.cloud.gateway.filter.factory.RewritePathGatewayFilterFactory.REPLACEMENT_KEY;
 import static org.springframework.cloud.gateway.handler.predicate.PathRoutePredicateFactory.PATTERN_KEY;
-import static org.springframework.cloud.gateway.support.NameUtils.normalizeFilterName;
+import static org.springframework.cloud.gateway.support.NameUtils.normalizeFilterFactoryName;
 import static org.springframework.cloud.gateway.support.NameUtils.normalizePredicateName;
 
 import reactor.core.publisher.Flux;
@@ -74,7 +74,7 @@ public class DiscoveryClientRouteDefinitionLocator implements RouteDefinitionLoc
 
 					// add a filter that removes /serviceId by default
 					FilterDefinition filter = new FilterDefinition();
-					filter.setName(normalizeFilterName(RewritePathGatewayFilterFactory.class));
+					filter.setName(normalizeFilterFactoryName(RewritePathGatewayFilterFactory.class));
 					String regex = "/" + serviceId + "/(?<remaining>.*)";
 					String replacement = "/${remaining}";
 					filter.addArg(REGEXP_KEY, regex);

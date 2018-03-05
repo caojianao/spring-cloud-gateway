@@ -17,12 +17,18 @@
 
 package org.springframework.cloud.gateway.config;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
-import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
+import org.springframework.beans.BeansException;
+import org.springframework.beans.factory.BeanFactory;
+import org.springframework.beans.factory.BeanFactoryUtils;
+import org.springframework.beans.factory.ListableBeanFactory;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.boot.actuate.autoconfigure.endpoint.condition.ConditionalOnEnabledEndpoint;
 import org.springframework.boot.actuate.health.Health;
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;
@@ -36,15 +42,13 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.boot.context.properties.PropertyMapper;
 import org.springframework.cloud.gateway.actuate.GatewayControllerEndpoint;
 import org.springframework.cloud.gateway.filter.ForwardRoutingFilter;
+import org.springframework.cloud.gateway.filter.GatewayFilter;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
-import org.springframework.cloud.gateway.filter.headers.ForwardedHeadersFilter;
-import org.springframework.cloud.gateway.filter.headers.HttpHeadersFilter;
 import org.springframework.cloud.gateway.filter.NettyRoutingFilter;
 import org.springframework.cloud.gateway.filter.NettyWriteResponseFilter;
-import org.springframework.cloud.gateway.filter.headers.RemoveHopByHopHeadersFilter;
 import org.springframework.cloud.gateway.filter.RouteToRequestUrlFilter;
 import org.springframework.cloud.gateway.filter.WebsocketRoutingFilter;
-import org.springframework.cloud.gateway.filter.factory.AddRequestHeaderGatewayFilterFactory;
+import org.springframework.cloud.gateway.filter.factory.AddRequestHeaderGatewayFilter;
 import org.springframework.cloud.gateway.filter.factory.AddRequestParameterGatewayFilterFactory;
 import org.springframework.cloud.gateway.filter.factory.AddResponseHeaderGatewayFilterFactory;
 import org.springframework.cloud.gateway.filter.factory.GatewayFilterFactory;
@@ -65,6 +69,9 @@ import org.springframework.cloud.gateway.filter.factory.SetRequestHeaderGatewayF
 import org.springframework.cloud.gateway.filter.factory.SetResponseHeaderGatewayFilterFactory;
 import org.springframework.cloud.gateway.filter.factory.SetStatusGatewayFilterFactory;
 import org.springframework.cloud.gateway.filter.factory.StripPrefixGatewayFilterFactory;
+import org.springframework.cloud.gateway.filter.headers.ForwardedHeadersFilter;
+import org.springframework.cloud.gateway.filter.headers.HttpHeadersFilter;
+import org.springframework.cloud.gateway.filter.headers.RemoveHopByHopHeadersFilter;
 import org.springframework.cloud.gateway.filter.headers.XForwardedHeadersFilter;
 import org.springframework.cloud.gateway.filter.ratelimit.KeyResolver;
 import org.springframework.cloud.gateway.filter.ratelimit.PrincipalNameKeyResolver;
@@ -96,6 +103,7 @@ import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
+import org.springframework.context.annotation.Scope;
 import org.springframework.util.StringUtils;
 import org.springframework.web.reactive.DispatcherHandler;
 import org.springframework.web.reactive.socket.client.ReactorNettyWebSocketClient;
@@ -105,14 +113,16 @@ import org.springframework.web.reactive.socket.server.support.HandshakeWebSocket
 
 import com.netflix.hystrix.HystrixObservableCommand;
 
+import static org.springframework.beans.factory.config.ConfigurableBeanFactory.SCOPE_PROTOTYPE;
+import static org.springframework.cloud.gateway.config.HttpClientProperties.Pool.PoolType.FIXED;
+
+import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
 import reactor.core.publisher.Flux;
 import reactor.ipc.netty.http.client.HttpClient;
 import reactor.ipc.netty.http.client.HttpClientOptions;
 import reactor.ipc.netty.options.ClientProxyOptions;
 import reactor.ipc.netty.resources.PoolResources;
 import rx.RxReactiveStreams;
-
-import static org.springframework.cloud.gateway.config.HttpClientProperties.Pool.PoolType.FIXED;
 
 /**
  * @author Spencer Gibb
@@ -382,8 +392,31 @@ public class GatewayAutoConfiguration {
 	// GatewayFilter Factory beans
 
 	@Bean
-	public AddRequestHeaderGatewayFilterFactory addRequestHeaderGatewayFilterFactory() {
-		return new AddRequestHeaderGatewayFilterFactory();
+	public BeanPostProcessor gatewayFilterBeanPostProcessor(BeanFactory beanFactory) {
+		return new BeanPostProcessor() {
+			@Override
+			public Object postProcessBeforeInitialization(Object bean, String beanName) throws BeansException {
+				if (bean instanceof RouteDefinitionRouteLocator) {
+					String[] names = new String[0];
+					if (beanFactory instanceof ListableBeanFactory) {
+						ListableBeanFactory factory = (ListableBeanFactory) beanFactory;
+						names = BeanFactoryUtils.beanNamesForTypeIncludingAncestors(factory, GatewayFilter.class);
+					}
+
+					List<Class> list = Arrays.stream(names).map(beanFactory::getType).collect(Collectors.toList());
+					RouteDefinitionRouteLocator locator = (RouteDefinitionRouteLocator) bean;
+					locator.setGatewayFilterClasses(list);
+					System.out.println(locator);
+				}
+				return bean;
+			}
+		};
+	}
+
+	@Bean
+	@Scope(SCOPE_PROTOTYPE)
+	public AddRequestHeaderGatewayFilter addRequestHeaderGatewayFilter() {
+		return new AddRequestHeaderGatewayFilter();
 	}
 
 	@Bean

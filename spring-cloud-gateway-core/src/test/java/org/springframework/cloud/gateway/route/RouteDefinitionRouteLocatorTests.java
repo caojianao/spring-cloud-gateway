@@ -40,6 +40,11 @@ public class RouteDefinitionRouteLocatorTests {
 		Map<String, String> args = new HashMap<>();
 		args.put("bean", "#{@foo}");
 		args.put("arg1", "val1");
+		Map<String, Object> map = RouteDefinitionRouteLocator.getMap(argumentHints, args, parser, this.beanFactory);
+		assertThat(map).isNotNull()
+				.containsEntry("bean", 42)
+				.containsEntry("arg1", "val1");
+
 		Tuple tuple = RouteDefinitionRouteLocator.getTuple(argumentHints, args, parser, this.beanFactory);
 		assertThat(tuple).isNotNull();
 		assertThat(tuple.getValue("bean", Integer.class)).isEqualTo(42);

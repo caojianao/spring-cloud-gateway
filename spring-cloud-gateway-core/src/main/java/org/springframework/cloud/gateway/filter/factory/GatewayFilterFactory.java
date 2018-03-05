@@ -35,7 +35,7 @@ public interface GatewayFilterFactory extends ArgumentHints {
 	GatewayFilter apply(Tuple args);
 
 	default String name() {
-		return NameUtils.normalizeFilterName(getClass());
+		return NameUtils.normalizeFilterFactoryName(getClass());
 	}
 
 	@Deprecated

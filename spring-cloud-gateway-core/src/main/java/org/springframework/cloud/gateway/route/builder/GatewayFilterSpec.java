@@ -18,19 +18,14 @@ package org.springframework.cloud.gateway.route.builder;
 
 import java.net.URI;
 import java.net.URL;
-import java.util.Arrays;
 import java.util.Collection;
-import java.util.List;
 
-import com.netflix.hystrix.HystrixObservableCommand;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import reactor.retry.Repeat;
-
 import org.springframework.beans.factory.NoSuchBeanDefinitionException;
 import org.springframework.cloud.gateway.filter.GatewayFilter;
 import org.springframework.cloud.gateway.filter.OrderedGatewayFilter;
-import org.springframework.cloud.gateway.filter.factory.AddRequestHeaderGatewayFilterFactory;
+import org.springframework.cloud.gateway.filter.factory.AddRequestHeaderGatewayFilter;
 import org.springframework.cloud.gateway.filter.factory.AddRequestParameterGatewayFilterFactory;
 import org.springframework.cloud.gateway.filter.factory.AddResponseHeaderGatewayFilterFactory;
 import org.springframework.cloud.gateway.filter.factory.HystrixGatewayFilterFactory;
@@ -57,7 +52,11 @@ import org.springframework.http.HttpStatus;
 import org.springframework.tuple.Tuple;
 import org.springframework.web.server.ServerWebExchange;
 
+import com.netflix.hystrix.HystrixObservableCommand;
+
 import static org.springframework.tuple.TupleBuilder.tuple;
+
+import reactor.retry.Repeat;
 
 public class GatewayFilterSpec extends UriSpec {
 
@@ -99,7 +98,7 @@ public class GatewayFilterSpec extends UriSpec {
 	}
 
 	public GatewayFilterSpec addRequestHeader(String headerName, String headerValue) {
-		return filter(getBean(AddRequestHeaderGatewayFilterFactory.class).apply(headerName, headerValue));
+		return filter(getBean(AddRequestHeaderGatewayFilter.class).setName(headerName).setValue(headerValue));
 	}
 
 	public GatewayFilterSpec addRequestParameter(String param, String value) {

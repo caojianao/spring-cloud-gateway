@@ -27,9 +27,15 @@ import java.util.stream.Collectors;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.springframework.aop.framework.Advised;
+import org.springframework.aop.support.AopUtils;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.BeanFactoryAware;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.context.properties.bind.Bindable;
+import org.springframework.boot.context.properties.bind.Binder;
+import org.springframework.boot.context.properties.source.MapConfigurationPropertySource;
 import org.springframework.cloud.gateway.config.GatewayProperties;
 import org.springframework.cloud.gateway.filter.FilterDefinition;
 import org.springframework.cloud.gateway.filter.GatewayFilter;
@@ -47,6 +53,10 @@ import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.springframework.expression.spel.support.StandardEvaluationContext;
 import org.springframework.tuple.Tuple;
 import org.springframework.tuple.TupleBuilder;
+import org.springframework.validation.BeanPropertyBindingResult;
+import org.springframework.validation.BindException;
+import org.springframework.validation.BindingResult;
+import org.springframework.validation.Validator;
 import org.springframework.web.server.ServerWebExchange;
 
 import reactor.core.publisher.Flux;
@@ -61,6 +71,7 @@ public class RouteDefinitionRouteLocator implements RouteLocator, BeanFactoryAwa
 	private final RouteDefinitionLocator routeDefinitionLocator;
 	private final Map<String, RoutePredicateFactory> predicates = new LinkedHashMap<>();
 	private final Map<String, GatewayFilterFactory> gatewayFilterFactories = new HashMap<>();
+	private final Map<String, Class> gatewayFilters = new HashMap<>();
 	private final GatewayProperties gatewayProperties;
 	private final SpelExpressionParser parser = new SpelExpressionParser();
 	private BeanFactory beanFactory;
@@ -74,6 +85,9 @@ public class RouteDefinitionRouteLocator implements RouteLocator, BeanFactoryAwa
 		gatewayFilterFactories.forEach(factory -> this.gatewayFilterFactories.put(factory.name(), factory));
 		this.gatewayProperties = gatewayProperties;
 	}
+
+	@Autowired
+	private Validator validator;
 
 	@Override
 	public void setBeanFactory(BeanFactory beanFactory) throws BeansException {
@@ -91,6 +105,22 @@ public class RouteDefinitionRouteLocator implements RouteLocator, BeanFactoryAwa
 			this.predicates.put(key, factory);
 			if (logger.isInfoEnabled()) {
 				logger.info("Loaded RoutePredicateFactory [" + key + "]");
+			}
+		});
+	}
+
+	@SuppressWarnings("unchecked")
+	public void setGatewayFilterClasses(List<Class> classes) {
+		classes.forEach(clazz -> {
+			String name = NameUtils.normalizeFilterName(clazz);
+			if (this.gatewayFilters.containsKey(name)) {
+				this.logger.warn("A GatewayFilter named "+ name
+						+ " already exists, class: " + this.predicates.get(name)
+						+ ". It will be overwritten.");
+			}
+			this.gatewayFilters.put(name, (Class<GatewayFilter>)clazz);
+			if (logger.isInfoEnabled()) {
+				logger.info("Loaded GatewayFilter [" + name + "]");
 			}
 		});
 	}
@@ -127,18 +157,37 @@ public class RouteDefinitionRouteLocator implements RouteLocator, BeanFactoryAwa
 	private List<GatewayFilter> loadGatewayFilters(String id, List<FilterDefinition> filterDefinitions) {
 		List<GatewayFilter> filters = filterDefinitions.stream()
 				.map(definition -> {
-					GatewayFilterFactory filter = this.gatewayFilterFactories.get(definition.getName());
-					if (filter == null) {
-						throw new IllegalArgumentException("Unable to find GatewayFilterFactory with name " + definition.getName());
+					GatewayFilterFactory factory = this.gatewayFilterFactories.get(definition.getName());
+					GatewayFilter gatewayFilter = null;
+					if (factory == null) {
+						Class filterClass = this.gatewayFilters.get(definition.getName());
+						if (filterClass == null) {
+							throw new IllegalArgumentException("Unable to find GatewayFilterFactory with name " + definition.getName());
+						}
+						gatewayFilter = GatewayFilter.class.cast(this.beanFactory.getBean(filterClass));
 					}
 					Map<String, String> args = definition.getArgs();
 					if (logger.isDebugEnabled()) {
 						logger.debug("RouteDefinition " + id + " applying filter " + args + " to " + definition.getName());
 					}
 
-					Tuple tuple = getTuple(filter, args, this.parser, this.beanFactory);
+					if (gatewayFilter == null) {
+						Tuple tuple = getTuple(factory, args, this.parser, this.beanFactory);
+						gatewayFilter = factory.apply(tuple);
+					} else {
+                        Map<String, Object> properties = getMap(gatewayFilter, args, this.parser, this.beanFactory);
+						GatewayFilter gf = getTargetObject(gatewayFilter);
 
-					return filter.apply(tuple);
+                        new Binder(new MapConfigurationPropertySource(properties))
+                                .bind("", Bindable.ofInstance(gf));
+
+                        BindingResult errors = new BeanPropertyBindingResult(gf, definition.getName());
+                        validator.validate(gf, errors);
+                        if (errors.hasErrors()) {
+                            throw new RuntimeException(new BindException(errors));
+                        }
+					}
+					return gatewayFilter;
 				})
 				.collect(Collectors.toList());
 
@@ -150,6 +199,19 @@ public class RouteDefinitionRouteLocator implements RouteLocator, BeanFactoryAwa
 		return ordered;
 	}
 
+	private static <T> T getTargetObject(Object candidate) {
+		try {
+			if (AopUtils.isAopProxy(candidate) && (candidate instanceof Advised)) {
+				return (T) ((Advised) candidate).getTargetSource().getTarget();
+			}
+		}
+		catch (Exception ex) {
+			throw new IllegalStateException("Failed to unwrap proxied object", ex);
+		}
+		return (T) candidate;
+	}
+
+	@Deprecated
 	//TODO: make argument resolving a strategy
 	/* for testing */ static Tuple getTuple(ArgumentHints hasArguments, Map<String, String> args, SpelExpressionParser parser, BeanFactory beanFactory) {
 		TupleBuilder builder = TupleBuilder.tuple();
@@ -205,6 +267,44 @@ public class RouteDefinitionRouteLocator implements RouteLocator, BeanFactoryAwa
 		return tuple;
 	}
 
+	/* for testing */ static Map<String, Object> getMap(ArgumentHints hasArguments, Map<String, String> args, SpelExpressionParser parser, BeanFactory beanFactory) {
+		Map<String, Object> map = new HashMap<>();
+
+		List<String> argNames = hasArguments.argNames();
+
+		int entryIdx = 0;
+		for (Map.Entry<String, String> entry : args.entrySet()) {
+			String key = entry.getKey();
+
+			// RoutePredicateFactory has name hints and this has a fake key name
+			// replace with the matching key hint
+			if (key.startsWith(NameUtils.GENERATED_NAME_PREFIX) && !argNames.isEmpty()
+					&& entryIdx < args.size() && entryIdx < argNames.size()) {
+				key = argNames.get(entryIdx);
+			}
+
+			Object value;
+			String rawValue = entry.getValue();
+			if (rawValue != null) {
+				rawValue = rawValue.trim();
+			}
+			if (rawValue != null && rawValue.startsWith("#{") && entry.getValue().endsWith("}")) {
+				// assume it's spel
+				StandardEvaluationContext context = new StandardEvaluationContext();
+				context.setBeanResolver(new BeanFactoryResolver(beanFactory));
+				Expression expression = parser.parseExpression(entry.getValue(), new TemplateParserContext());
+				value = expression.getValue(context);
+			} else {
+				value = entry.getValue();
+			}
+
+			map.put(key, value);
+			entryIdx++;
+		}
+
+		return map;
+	}
+
 	private List<GatewayFilter> getFilters(RouteDefinition routeDefinition) {
 		List<GatewayFilter> filters = new ArrayList<>();
 
@@ -249,5 +349,4 @@ public class RouteDefinitionRouteLocator implements RouteLocator, BeanFactoryAwa
 
 		return found.apply(tuple);
 	}
-
 }
