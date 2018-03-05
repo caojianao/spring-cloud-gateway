@@ -17,18 +17,11 @@
 
 package org.springframework.cloud.gateway.config;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
 
-import org.springframework.beans.BeansException;
-import org.springframework.beans.factory.BeanFactory;
-import org.springframework.beans.factory.BeanFactoryUtils;
-import org.springframework.beans.factory.ListableBeanFactory;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.boot.actuate.autoconfigure.endpoint.condition.ConditionalOnEnabledEndpoint;
 import org.springframework.boot.actuate.health.Health;
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;
@@ -42,7 +35,6 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.boot.context.properties.PropertyMapper;
 import org.springframework.cloud.gateway.actuate.GatewayControllerEndpoint;
 import org.springframework.cloud.gateway.filter.ForwardRoutingFilter;
-import org.springframework.cloud.gateway.filter.GatewayFilter;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.cloud.gateway.filter.NettyRoutingFilter;
 import org.springframework.cloud.gateway.filter.NettyWriteResponseFilter;
@@ -51,6 +43,7 @@ import org.springframework.cloud.gateway.filter.WebsocketRoutingFilter;
 import org.springframework.cloud.gateway.filter.factory.AddRequestHeaderGatewayFilter;
 import org.springframework.cloud.gateway.filter.factory.AddRequestParameterGatewayFilterFactory;
 import org.springframework.cloud.gateway.filter.factory.AddResponseHeaderGatewayFilterFactory;
+import org.springframework.cloud.gateway.filter.factory.GatewayFilterBeanPostProcessor;
 import org.springframework.cloud.gateway.filter.factory.GatewayFilterFactory;
 import org.springframework.cloud.gateway.filter.factory.HystrixGatewayFilterFactory;
 import org.springframework.cloud.gateway.filter.factory.PrefixPathGatewayFilterFactory;
@@ -392,25 +385,8 @@ public class GatewayAutoConfiguration {
 	// GatewayFilter Factory beans
 
 	@Bean
-	public BeanPostProcessor gatewayFilterBeanPostProcessor(BeanFactory beanFactory) {
-		return new BeanPostProcessor() {
-			@Override
-			public Object postProcessBeforeInitialization(Object bean, String beanName) throws BeansException {
-				if (bean instanceof RouteDefinitionRouteLocator) {
-					String[] names = new String[0];
-					if (beanFactory instanceof ListableBeanFactory) {
-						ListableBeanFactory factory = (ListableBeanFactory) beanFactory;
-						names = BeanFactoryUtils.beanNamesForTypeIncludingAncestors(factory, GatewayFilter.class);
-					}
-
-					List<Class> list = Arrays.stream(names).map(beanFactory::getType).collect(Collectors.toList());
-					RouteDefinitionRouteLocator locator = (RouteDefinitionRouteLocator) bean;
-					locator.setGatewayFilterClasses(list);
-					System.out.println(locator);
-				}
-				return bean;
-			}
-		};
+	public GatewayFilterBeanPostProcessor gatewayFilterBeanPostProcessor() {
+		return new GatewayFilterBeanPostProcessor();
 	}
 
 	@Bean
