@@ -96,7 +96,7 @@ public class RedisRateLimiterConfigTests {
 									.keyResolver(new MyKeyResolver())
 									.configure(config -> config.setBurstCapacity(40)
 											.setReplenishRate(20)))
-                            .uri("http://localhost"))
+									.uri("http://localhost"))
 					.build();
 		}
 	}
