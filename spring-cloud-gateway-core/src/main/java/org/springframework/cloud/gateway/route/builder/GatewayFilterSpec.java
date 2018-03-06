@@ -19,10 +19,10 @@ package org.springframework.cloud.gateway.route.builder;
 import java.net.URI;
 import java.net.URL;
 import java.util.Collection;
+import java.util.function.Consumer;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.springframework.beans.factory.NoSuchBeanDefinitionException;
 import org.springframework.cloud.gateway.filter.GatewayFilter;
 import org.springframework.cloud.gateway.filter.OrderedGatewayFilter;
 import org.springframework.cloud.gateway.filter.factory.AddRequestHeaderGatewayFilter;
@@ -34,7 +34,7 @@ import org.springframework.cloud.gateway.filter.factory.PreserveHostHeaderGatewa
 import org.springframework.cloud.gateway.filter.factory.RedirectToGatewayFilterFactory;
 import org.springframework.cloud.gateway.filter.factory.RemoveRequestHeaderGatewayFilterFactory;
 import org.springframework.cloud.gateway.filter.factory.RemoveResponseHeaderGatewayFilterFactory;
-import org.springframework.cloud.gateway.filter.factory.RequestRateLimiterGatewayFilterFactory;
+import org.springframework.cloud.gateway.filter.factory.RequestRateLimiterGatewayFilter;
 import org.springframework.cloud.gateway.filter.factory.RetryGatewayFilterFactory;
 import org.springframework.cloud.gateway.filter.factory.RewritePathGatewayFilterFactory;
 import org.springframework.cloud.gateway.filter.factory.SaveSessionGatewayFilterFactory;
@@ -45,6 +45,7 @@ import org.springframework.cloud.gateway.filter.factory.SetResponseHeaderGateway
 import org.springframework.cloud.gateway.filter.factory.SetStatusGatewayFilterFactory;
 import org.springframework.cloud.gateway.filter.factory.StripPrefixGatewayFilterFactory;
 import org.springframework.cloud.gateway.filter.ratelimit.KeyResolver;
+import org.springframework.cloud.gateway.filter.ratelimit.RateLimiter;
 import org.springframework.cloud.gateway.route.Route;
 import org.springframework.core.Ordered;
 import org.springframework.http.HttpMethod;
@@ -161,15 +162,43 @@ public class GatewayFilterSpec extends UriSpec {
 		return filter(getBean(RemoveResponseHeaderGatewayFilterFactory.class).apply(headerName));
 	}
 
-	public GatewayFilterSpec requestRateLimiter(Tuple args) {
-		RequestRateLimiterGatewayFilterFactory factory = getBean(RequestRateLimiterGatewayFilterFactory.class);
-		KeyResolver keyResolver;
-		try {
-			keyResolver = getBean(KeyResolver.class);
-		} catch (NoSuchBeanDefinitionException e) {
-			keyResolver = factory.getDefaultKeyResolver();
+	public GatewayFilterSpec requestRateLimiter() {
+		return filter(getBean(RequestRateLimiterGatewayFilter.class));
+	}
+
+    public <C, T extends RateLimiter<C>> RequestRateLimiterSpec<T, C> requestRateLimiter(Class<T> rateLimiterType) {
+		T rateLimiter = getBean(rateLimiterType);
+		RequestRateLimiterGatewayFilter filter = getBean(RequestRateLimiterGatewayFilter.class);
+		return new RequestRateLimiterSpec<>(filter, rateLimiter);
+	}
+
+	public class RequestRateLimiterSpec<T extends RateLimiter, C> {
+		private RequestRateLimiterGatewayFilter filter;
+		private T rateLimiter;
+
+		public RequestRateLimiterSpec(RequestRateLimiterGatewayFilter filter, T rateLimiter) {
+			this.filter = filter;
+			this.rateLimiter = rateLimiter;
 		}
-		return filter(factory.apply(keyResolver, args));
+
+		public RequestRateLimiterSpec<T, C> keyResolver(KeyResolver keyResolver) {
+			this.filter.setKeyResolver(keyResolver);
+			return this;
+		}
+
+		// useful when nothing to configure
+		public GatewayFilterSpec and() {
+			filter(this.filter);
+			return GatewayFilterSpec.this;
+		}
+
+		@SuppressWarnings("unchecked")
+		public GatewayFilterSpec configure(Consumer<C> consumer) {
+			C config = (C) this.rateLimiter.newConfig();
+			consumer.accept(config);
+			this.rateLimiter.getConfig().put(routeBuilder.getId(), config);
+			return and();
+		}
 	}
 
 	public GatewayFilterSpec rewritePath(String regex, String replacement) {

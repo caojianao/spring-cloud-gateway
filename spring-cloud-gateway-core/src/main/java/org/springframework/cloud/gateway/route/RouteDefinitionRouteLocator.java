@@ -27,16 +27,12 @@ import java.util.stream.Collectors;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.springframework.aop.framework.Advised;
-import org.springframework.aop.support.AopUtils;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.BeanFactoryAware;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.context.properties.bind.Bindable;
-import org.springframework.boot.context.properties.bind.Binder;
-import org.springframework.boot.context.properties.source.MapConfigurationPropertySource;
 import org.springframework.cloud.gateway.config.GatewayProperties;
+import org.springframework.cloud.gateway.event.FilterArgsEvent;
 import org.springframework.cloud.gateway.filter.FilterDefinition;
 import org.springframework.cloud.gateway.filter.GatewayFilter;
 import org.springframework.cloud.gateway.filter.OrderedGatewayFilter;
@@ -44,7 +40,10 @@ import org.springframework.cloud.gateway.filter.factory.GatewayFilterFactory;
 import org.springframework.cloud.gateway.handler.predicate.PredicateDefinition;
 import org.springframework.cloud.gateway.handler.predicate.RoutePredicateFactory;
 import org.springframework.cloud.gateway.support.ArgumentHints;
+import org.springframework.cloud.gateway.support.ConfigurationUtils;
 import org.springframework.cloud.gateway.support.NameUtils;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.context.ApplicationEventPublisherAware;
 import org.springframework.context.expression.BeanFactoryResolver;
 import org.springframework.core.annotation.AnnotationAwareOrderComparator;
 import org.springframework.expression.Expression;
@@ -53,9 +52,6 @@ import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.springframework.expression.spel.support.StandardEvaluationContext;
 import org.springframework.tuple.Tuple;
 import org.springframework.tuple.TupleBuilder;
-import org.springframework.validation.BeanPropertyBindingResult;
-import org.springframework.validation.BindException;
-import org.springframework.validation.BindingResult;
 import org.springframework.validation.Validator;
 import org.springframework.web.server.ServerWebExchange;
 
@@ -65,7 +61,7 @@ import reactor.core.publisher.Flux;
  * {@link RouteLocator} that loads routes from a {@link RouteDefinitionLocator}
  * @author Spencer Gibb
  */
-public class RouteDefinitionRouteLocator implements RouteLocator, BeanFactoryAware {
+public class RouteDefinitionRouteLocator implements RouteLocator, BeanFactoryAware, ApplicationEventPublisherAware {
 	protected final Log logger = LogFactory.getLog(getClass());
 
 	private final RouteDefinitionLocator routeDefinitionLocator;
@@ -76,6 +72,7 @@ public class RouteDefinitionRouteLocator implements RouteLocator, BeanFactoryAwa
 	private final GatewayProperties gatewayProperties;
 	private final SpelExpressionParser parser = new SpelExpressionParser();
 	private BeanFactory beanFactory;
+	private ApplicationEventPublisher publisher;
 
 	public RouteDefinitionRouteLocator(RouteDefinitionLocator routeDefinitionLocator,
 									   List<RoutePredicateFactory> predicates,
@@ -93,6 +90,11 @@ public class RouteDefinitionRouteLocator implements RouteLocator, BeanFactoryAwa
 	@Override
 	public void setBeanFactory(BeanFactory beanFactory) throws BeansException {
 		this.beanFactory = beanFactory;
+	}
+
+	@Override
+	public void setApplicationEventPublisher(ApplicationEventPublisher publisher) {
+		this.publisher = publisher;
 	}
 
 	private void initFactories(List<RoutePredicateFactory> predicates) {
@@ -177,16 +179,11 @@ public class RouteDefinitionRouteLocator implements RouteLocator, BeanFactoryAwa
 						gatewayFilter = factory.apply(tuple);
 					} else {
                         Map<String, Object> properties = getMap(gatewayFilter, args, this.parser, this.beanFactory);
-						GatewayFilter gf = getTargetObject(gatewayFilter);
-
-                        new Binder(new MapConfigurationPropertySource(properties))
-                                .bind("", Bindable.ofInstance(gf));
-
-                        BindingResult errors = new BeanPropertyBindingResult(gf, definition.getName());
-                        validator.validate(gf, errors);
-                        if (errors.hasErrors()) {
-                            throw new RuntimeException(new BindException(errors));
-                        }
+						ConfigurationUtils.bind(gatewayFilter, properties,
+								"", definition.getName(), validator);
+                        if (this.publisher != null) {
+                        	this.publisher.publishEvent(new FilterArgsEvent(this, id, properties));
+						}
 					}
 					return gatewayFilter;
 				})
@@ -198,18 +195,6 @@ public class RouteDefinitionRouteLocator implements RouteLocator, BeanFactoryAwa
 		}
 
 		return ordered;
-	}
-
-	private static <T> T getTargetObject(Object candidate) {
-		try {
-			if (AopUtils.isAopProxy(candidate) && (candidate instanceof Advised)) {
-				return (T) ((Advised) candidate).getTargetSource().getTarget();
-			}
-		}
-		catch (Exception ex) {
-			throw new IllegalStateException("Failed to unwrap proxied object", ex);
-		}
-		return (T) candidate;
 	}
 
 	@SuppressWarnings("Duplicates")

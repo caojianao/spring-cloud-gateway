@@ -40,6 +40,7 @@ import org.springframework.cloud.gateway.filter.NettyRoutingFilter;
 import org.springframework.cloud.gateway.filter.NettyWriteResponseFilter;
 import org.springframework.cloud.gateway.filter.RouteToRequestUrlFilter;
 import org.springframework.cloud.gateway.filter.WebsocketRoutingFilter;
+import org.springframework.cloud.gateway.filter.annotation.GatewayFilter;
 import org.springframework.cloud.gateway.filter.factory.AddRequestHeaderGatewayFilter;
 import org.springframework.cloud.gateway.filter.factory.AddRequestParameterGatewayFilterFactory;
 import org.springframework.cloud.gateway.filter.factory.AddResponseHeaderGatewayFilterFactory;
@@ -51,7 +52,7 @@ import org.springframework.cloud.gateway.filter.factory.PreserveHostHeaderGatewa
 import org.springframework.cloud.gateway.filter.factory.RedirectToGatewayFilterFactory;
 import org.springframework.cloud.gateway.filter.factory.RemoveRequestHeaderGatewayFilterFactory;
 import org.springframework.cloud.gateway.filter.factory.RemoveResponseHeaderGatewayFilterFactory;
-import org.springframework.cloud.gateway.filter.factory.RequestRateLimiterGatewayFilterFactory;
+import org.springframework.cloud.gateway.filter.factory.RequestRateLimiterGatewayFilter;
 import org.springframework.cloud.gateway.filter.factory.RetryGatewayFilterFactory;
 import org.springframework.cloud.gateway.filter.factory.RewritePathGatewayFilterFactory;
 import org.springframework.cloud.gateway.filter.factory.SaveSessionGatewayFilterFactory;
@@ -96,7 +97,6 @@ import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
-import org.springframework.context.annotation.Scope;
 import org.springframework.util.StringUtils;
 import org.springframework.web.reactive.DispatcherHandler;
 import org.springframework.web.reactive.socket.client.ReactorNettyWebSocketClient;
@@ -106,7 +106,6 @@ import org.springframework.web.reactive.socket.server.support.HandshakeWebSocket
 
 import com.netflix.hystrix.HystrixObservableCommand;
 
-import static org.springframework.beans.factory.config.ConfigurableBeanFactory.SCOPE_PROTOTYPE;
 import static org.springframework.cloud.gateway.config.HttpClientProperties.Pool.PoolType.FIXED;
 
 import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
@@ -390,7 +389,7 @@ public class GatewayAutoConfiguration {
 	}
 
 	@Bean
-	@Scope(SCOPE_PROTOTYPE)
+	@GatewayFilter
 	public AddRequestHeaderGatewayFilter addRequestHeaderGatewayFilter() {
 		return new AddRequestHeaderGatewayFilter();
 	}
@@ -446,9 +445,10 @@ public class GatewayAutoConfiguration {
 	}
 
 	@Bean
+	@GatewayFilter
 	@ConditionalOnBean({RateLimiter.class, KeyResolver.class})
-	public RequestRateLimiterGatewayFilterFactory requestRateLimiterGatewayFilterFactory(RateLimiter rateLimiter, PrincipalNameKeyResolver resolver) {
-		return new RequestRateLimiterGatewayFilterFactory(rateLimiter, resolver);
+	public RequestRateLimiterGatewayFilter requestRateLimiterGatewayFilterFactory(RateLimiter rateLimiter, PrincipalNameKeyResolver resolver) {
+		return new RequestRateLimiterGatewayFilter(rateLimiter, resolver);
 	}
 
 	@Bean

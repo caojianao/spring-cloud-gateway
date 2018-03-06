@@ -25,14 +25,14 @@ import org.junit.runners.Suite;
 import org.junit.runners.Suite.SuiteClasses;
 import org.junit.runners.model.Statement;
 
-import org.springframework.cloud.gateway.filter.factory.AddRequestHeaderGatewayFilterFactoryTests;
+import org.springframework.cloud.gateway.filter.factory.AddRequestHeaderGatewayFilterTests;
 import org.springframework.cloud.gateway.filter.factory.AddRequestParameterGatewayFilterFactoryTests;
 import org.springframework.cloud.gateway.filter.factory.HystrixGatewayFilterFactoryTests;
 import org.springframework.cloud.gateway.filter.factory.PreserveHostHeaderGatewayFilterFactoryTests;
 import org.springframework.cloud.gateway.filter.factory.RedirectToGatewayFilterFactoryTests;
 import org.springframework.cloud.gateway.filter.factory.RemoveRequestHeaderGatewayFilterFactoryTests;
 import org.springframework.cloud.gateway.filter.factory.RemoveResponseHeaderGatewayFilterFactoryTests;
-import org.springframework.cloud.gateway.filter.factory.RequestRateLimiterGatewayFilterFactoryTests;
+import org.springframework.cloud.gateway.filter.factory.RequestRateLimiterGatewayFilterTests;
 import org.springframework.cloud.gateway.filter.factory.RewritePathGatewayFilterFactoryIntegrationTests;
 import org.springframework.cloud.gateway.filter.factory.RewritePathGatewayFilterFactoryTests;
 import org.springframework.cloud.gateway.filter.factory.SecureHeadersGatewayFilterFactoryTests;
@@ -83,9 +83,9 @@ import static org.junit.Assume.assumeThat;
 		RewritePathGatewayFilterFactoryTests.class,
 		SetStatusGatewayFilterFactoryTests.class,
 		RedirectToGatewayFilterFactoryTests.class,
-		AddRequestHeaderGatewayFilterFactoryTests.class,
+		AddRequestHeaderGatewayFilterTests.class,
 		SecureHeadersGatewayFilterFactoryTests.class,
-		RequestRateLimiterGatewayFilterFactoryTests.class,
+		RequestRateLimiterGatewayFilterTests.class,
 		SetPathGatewayFilterFactoryIntegrationTests.class,
 		AddRequestParameterGatewayFilterFactoryTests.class,
 		SetResponseGatewayFilterFactoryTests.class,

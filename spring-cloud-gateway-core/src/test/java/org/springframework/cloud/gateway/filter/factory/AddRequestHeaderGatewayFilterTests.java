@@ -43,7 +43,7 @@ import static org.springframework.cloud.gateway.test.TestUtils.getMap;
 @SpringBootTest(webEnvironment = RANDOM_PORT)
 @DirtiesContext
 @ActiveProfiles(profiles = "request-header-web-filter")
-public class AddRequestHeaderGatewayFilterFactoryTests extends BaseWebClientTests {
+public class AddRequestHeaderGatewayFilterTests extends BaseWebClientTests {
 
 	@Test
 	public void addRequestHeaderFilterWorks() {

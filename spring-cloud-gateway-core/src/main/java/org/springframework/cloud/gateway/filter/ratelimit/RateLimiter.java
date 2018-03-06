@@ -1,14 +1,14 @@
 package org.springframework.cloud.gateway.filter.ratelimit;
 
-import org.springframework.tuple.Tuple;
+import org.springframework.cloud.gateway.support.Configurable;
 import reactor.core.publisher.Mono;
 
 /**
  * @author Spencer Gibb
  */
-public interface RateLimiter {
+public interface RateLimiter<C> extends Configurable<C> {
 
-	Mono<Response> isAllowed(String id, Tuple args);
+	Mono<Response> isAllowed(String routeId, String id);
 
 	class Response {
 		private final boolean allowed;
