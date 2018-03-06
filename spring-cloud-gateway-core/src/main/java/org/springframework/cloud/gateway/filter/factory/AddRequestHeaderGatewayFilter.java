@@ -17,12 +17,6 @@
 
 package org.springframework.cloud.gateway.filter.factory;
 
-import java.util.Arrays;
-import java.util.List;
-
-import javax.validation.constraints.NotEmpty;
-
-import org.springframework.cloud.gateway.filter.GatewayFilter;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.validation.annotation.Validated;
@@ -34,36 +28,9 @@ import reactor.core.publisher.Mono;
  * @author Spencer Gibb
  */
 @Validated
-public class AddRequestHeaderGatewayFilter implements GatewayFilter {
-    @NotEmpty
-    private String name;
-    @NotEmpty
-    private String value;
+public class AddRequestHeaderGatewayFilter extends NameValueGatewayFilter<AddRequestHeaderGatewayFilter> {
 
-    public String getName() {
-        return name;
-    }
-
-    public AddRequestHeaderGatewayFilter setName(String name) {
-        this.name = name;
-        return this;
-    }
-
-    public String getValue() {
-        return value;
-    }
-
-    public AddRequestHeaderGatewayFilter setValue(String value) {
-        this.value = value;
-        return this;
-    }
-
-    @Override
-    public List<String> argNames() {
-        return Arrays.asList(NAME_KEY, VALUE_KEY);
-    }
-
-    @Override
+	@Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
         ServerHttpRequest request = exchange.getRequest().mutate()
                 .header(name, value)
