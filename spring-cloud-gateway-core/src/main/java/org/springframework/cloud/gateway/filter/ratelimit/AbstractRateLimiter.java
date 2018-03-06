@@ -17,6 +17,7 @@
 
 package org.springframework.cloud.gateway.filter.ratelimit;
 
+import org.springframework.beans.BeanUtils;
 import org.springframework.cloud.gateway.event.FilterArgsEvent;
 import org.springframework.cloud.gateway.support.ConfigurationUtils;
 import org.springframework.context.ApplicationListener;
@@ -27,10 +28,12 @@ import java.util.Map;
 
 public abstract class AbstractRateLimiter<C> implements RateLimiter<C>, ApplicationListener<FilterArgsEvent> {
 	private Map<String, C> config = new HashMap<>();
+	private Class<C> configClass;
 	private String configurationPropertyName;
 	private final Validator validator;
 
-	protected AbstractRateLimiter(String configurationPropertyName, Validator validator) {
+	protected AbstractRateLimiter(Class<C> configClass, String configurationPropertyName, Validator validator) {
+		this.configClass = configClass;
 		this.configurationPropertyName = configurationPropertyName;
 		this.validator = validator;
 	}
@@ -46,6 +49,15 @@ public abstract class AbstractRateLimiter<C> implements RateLimiter<C>, Applicat
 	@Override
 	public Map<String, C> getConfig() {
 		return this.config;
+	}
+
+	protected Class<C> getConfigClass() {
+		return configClass;
+	}
+
+	@Override
+	public C newConfig() {
+		return BeanUtils.instantiateClass(this.configClass);
 	}
 
 	@Override

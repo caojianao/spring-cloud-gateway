@@ -37,14 +37,9 @@ public class RedisRateLimiter extends AbstractRateLimiter<RedisRateLimiter.Confi
 
 	public RedisRateLimiter(ReactiveRedisTemplate<String, String> redisTemplate,
 							RedisScript<List<Long>> script, Validator validator) {
-		super(CONFIGURATION_PROPERTY_NAME, validator);
+		super(Config.class, CONFIGURATION_PROPERTY_NAME, validator);
 		this.redisTemplate = redisTemplate;
 		this.script = script;
-	}
-
-	@Override
-	public Config newConfig() {
-		return new Config();
 	}
 
 	/**
