@@ -45,5 +45,12 @@ public interface GatewayFilter extends ArgumentHints {
 	 */
 	Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain);
 
+	/**
+	 * Lifecycle method for allowing work after configuration, but before the filter is
+	 * run as part of a GatewayFilterChain.
+	 */
+	default void afterConfigurationSet() {
+
+	}
 }
 

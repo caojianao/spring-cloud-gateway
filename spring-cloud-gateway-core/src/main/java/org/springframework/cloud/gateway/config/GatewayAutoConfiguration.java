@@ -43,10 +43,10 @@ import org.springframework.cloud.gateway.filter.WebsocketRoutingFilter;
 import org.springframework.cloud.gateway.filter.annotation.GatewayFilter;
 import org.springframework.cloud.gateway.filter.factory.AddRequestHeaderGatewayFilter;
 import org.springframework.cloud.gateway.filter.factory.AddRequestParameterGatewayFilter;
-import org.springframework.cloud.gateway.filter.factory.AddResponseHeaderGatewayFilterFactory;
+import org.springframework.cloud.gateway.filter.factory.AddResponseHeaderGatewayFilter;
 import org.springframework.cloud.gateway.filter.factory.GatewayFilterBeanPostProcessor;
 import org.springframework.cloud.gateway.filter.factory.GatewayFilterFactory;
-import org.springframework.cloud.gateway.filter.factory.HystrixGatewayFilterFactory;
+import org.springframework.cloud.gateway.filter.factory.HystrixGatewayFilter;
 import org.springframework.cloud.gateway.filter.factory.PrefixPathGatewayFilterFactory;
 import org.springframework.cloud.gateway.filter.factory.PreserveHostHeaderGatewayFilterFactory;
 import org.springframework.cloud.gateway.filter.factory.RedirectToGatewayFilterFactory;
@@ -409,16 +409,18 @@ public class GatewayAutoConfiguration {
 	}
 
 	@Bean
-	public AddResponseHeaderGatewayFilterFactory addResponseHeaderGatewayFilterFactory() {
-		return new AddResponseHeaderGatewayFilterFactory();
+	@GatewayFilter
+	public AddResponseHeaderGatewayFilter addResponseHeaderGatewayFilter() {
+		return new AddResponseHeaderGatewayFilter();
 	}
 
 	@Configuration
 	@ConditionalOnClass({HystrixObservableCommand.class, RxReactiveStreams.class})
 	protected static class HystrixConfiguration {
 		@Bean
-		public HystrixGatewayFilterFactory hystrixGatewayFilterFactory(DispatcherHandler dispatcherHandler) {
-			return new HystrixGatewayFilterFactory(dispatcherHandler);
+		@GatewayFilter
+		public HystrixGatewayFilter hystrixGatewayFilter(DispatcherHandler dispatcherHandler) {
+			return new HystrixGatewayFilter(dispatcherHandler);
 		}
 	}
 

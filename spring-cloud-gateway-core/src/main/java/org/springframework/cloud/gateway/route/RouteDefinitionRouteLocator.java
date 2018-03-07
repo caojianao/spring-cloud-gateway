@@ -201,6 +201,7 @@ public class RouteDefinitionRouteLocator implements RouteLocator, BeanFactoryAwa
                         Map<String, Object> properties = getMap(gatewayFilter, args, this.parser, this.beanFactory);
 						ConfigurationUtils.bind(gatewayFilter, properties,
 								"", definition.getName(), validator);
+						gatewayFilter.afterConfigurationSet();
                         if (this.publisher != null) {
                         	this.publisher.publishEvent(new FilterArgsEvent(this, id, properties));
 						}

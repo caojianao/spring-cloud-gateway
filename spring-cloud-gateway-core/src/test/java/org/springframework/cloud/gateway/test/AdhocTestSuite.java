@@ -27,7 +27,7 @@ import org.junit.runners.model.Statement;
 
 import org.springframework.cloud.gateway.filter.factory.AddRequestHeaderGatewayFilterTests;
 import org.springframework.cloud.gateway.filter.factory.AddRequestParameterGatewayFilterTests;
-import org.springframework.cloud.gateway.filter.factory.HystrixGatewayFilterFactoryTests;
+import org.springframework.cloud.gateway.filter.factory.HystrixGatewayFilterTests;
 import org.springframework.cloud.gateway.filter.factory.PreserveHostHeaderGatewayFilterFactoryTests;
 import org.springframework.cloud.gateway.filter.factory.RedirectToGatewayFilterFactoryTests;
 import org.springframework.cloud.gateway.filter.factory.RemoveRequestHeaderGatewayFilterFactoryTests;
@@ -76,7 +76,7 @@ import static org.junit.Assume.assumeThat;
 		XForwardedHeadersFilterTests.class,
 		// FilterFactory Tests
 		RemoveResponseHeaderGatewayFilterFactoryTests.class,
-		HystrixGatewayFilterFactoryTests.class,
+		HystrixGatewayFilterTests.class,
 		RewritePathGatewayFilterFactoryIntegrationTests.class,
 		RemoveRequestHeaderGatewayFilterFactoryTests.class,
 		SetPathGatewayFilterFactoryTests.class,
