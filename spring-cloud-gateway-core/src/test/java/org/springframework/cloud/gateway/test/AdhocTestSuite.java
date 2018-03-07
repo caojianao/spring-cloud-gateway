@@ -50,7 +50,7 @@ import org.springframework.cloud.gateway.handler.predicate.BeforeRoutePredicateF
 import org.springframework.cloud.gateway.handler.predicate.BetweenRoutePredicateFactoryTests;
 import org.springframework.cloud.gateway.handler.predicate.HostRoutePredicateFactoryTests;
 import org.springframework.cloud.gateway.handler.predicate.MethodRoutePredicateFactoryTests;
-import org.springframework.cloud.gateway.handler.predicate.PathRoutePredicateTests;
+import org.springframework.cloud.gateway.handler.predicate.PathRoutePredicateFactoryTests;
 import org.springframework.cloud.gateway.route.RouteDefinitionRouteLocatorTests;
 import org.springframework.cloud.gateway.test.websocket.WebSocketIntegrationTests;
 
@@ -97,7 +97,7 @@ import static org.junit.Assume.assumeThat;
 		MethodRoutePredicateFactoryTests.class,
 		HostRoutePredicateFactoryTests.class,
 		AfterRoutePredicateFactoryTests.class,
-		PathRoutePredicateTests.class,
+		PathRoutePredicateFactoryTests.class,
 		BetweenRoutePredicateFactoryTests.class,
 		BeforeRoutePredicateFactoryTests.class,
 

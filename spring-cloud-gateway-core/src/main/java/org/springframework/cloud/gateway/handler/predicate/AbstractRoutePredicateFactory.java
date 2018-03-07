@@ -17,10 +17,26 @@
 
 package org.springframework.cloud.gateway.handler.predicate;
 
-import org.springframework.cloud.gateway.support.ArgumentHints;
+import org.springframework.cloud.gateway.support.AbstractConfigurable;
+import org.springframework.tuple.Tuple;
 import org.springframework.web.server.ServerWebExchange;
 
 import java.util.function.Predicate;
 
-public interface RoutePredicate extends Predicate<ServerWebExchange>, ArgumentHints {
+public abstract class AbstractRoutePredicateFactory<C> extends AbstractConfigurable<C>
+		implements RoutePredicateFactory<C> {
+
+	public AbstractRoutePredicateFactory(Class<C> configClass) {
+		super(configClass);
+	}
+
+	@Override
+	public boolean isConfigurable() {
+		return true;
+	}
+
+	@Override
+	public Predicate<ServerWebExchange> apply(Tuple args) {
+		throw new UnsupportedOperationException("apply(Tuple) not supported");
+	}
 }

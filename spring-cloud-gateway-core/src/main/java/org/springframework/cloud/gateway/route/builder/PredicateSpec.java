@@ -23,7 +23,7 @@ import org.springframework.cloud.gateway.handler.predicate.CookieRoutePredicateF
 import org.springframework.cloud.gateway.handler.predicate.HeaderRoutePredicateFactory;
 import org.springframework.cloud.gateway.handler.predicate.HostRoutePredicateFactory;
 import org.springframework.cloud.gateway.handler.predicate.MethodRoutePredicateFactory;
-import org.springframework.cloud.gateway.handler.predicate.PathRoutePredicate;
+import org.springframework.cloud.gateway.handler.predicate.PathRoutePredicateFactory;
 import org.springframework.cloud.gateway.handler.predicate.QueryRoutePredicateFactory;
 import org.springframework.cloud.gateway.handler.predicate.RemoteAddrRoutePredicateFactory;
 import org.springframework.cloud.gateway.route.Route;
@@ -90,7 +90,8 @@ public class PredicateSpec extends UriSpec {
 	}
 
 	public BooleanSpec path(String pattern) {
-		return predicate(getBean(PathRoutePredicate.class).setPattern(pattern));
+		return predicate(getBean(PathRoutePredicateFactory.class)
+				.apply(c -> c.setPattern(pattern)));
 	}
 
 	public BooleanSpec query(String param, String regex) {

@@ -33,7 +33,7 @@ import static org.springframework.boot.test.context.SpringBootTest.WebEnvironmen
 @RunWith(SpringRunner.class)
 @SpringBootTest(webEnvironment = RANDOM_PORT)
 @DirtiesContext
-public class PathRoutePredicateTests extends BaseWebClientTests {
+public class PathRoutePredicateFactoryTests extends BaseWebClientTests {
 
 	@Test
 	public void pathRouteWorks() {

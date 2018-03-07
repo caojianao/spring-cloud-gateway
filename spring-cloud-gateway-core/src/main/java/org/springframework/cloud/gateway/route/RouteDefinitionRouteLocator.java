@@ -39,7 +39,6 @@ import org.springframework.cloud.gateway.filter.GatewayFilter;
 import org.springframework.cloud.gateway.filter.OrderedGatewayFilter;
 import org.springframework.cloud.gateway.filter.factory.GatewayFilterFactory;
 import org.springframework.cloud.gateway.handler.predicate.PredicateDefinition;
-import org.springframework.cloud.gateway.handler.predicate.RoutePredicate;
 import org.springframework.cloud.gateway.handler.predicate.RoutePredicateFactory;
 import org.springframework.cloud.gateway.support.ArgumentHints;
 import org.springframework.cloud.gateway.support.ConfigurationUtils;
@@ -67,9 +66,7 @@ public class RouteDefinitionRouteLocator implements RouteLocator, BeanFactoryAwa
 	protected final Log logger = LogFactory.getLog(getClass());
 
 	private final RouteDefinitionLocator routeDefinitionLocator;
-	@Deprecated
 	private final Map<String, RoutePredicateFactory> predicates = new LinkedHashMap<>();
-	private final Map<String, Class<? extends RoutePredicate>> routePredicates = new HashMap<>();
 	private final Map<String, GatewayFilterFactory> gatewayFilterFactories = new HashMap<>();
 	private final GatewayProperties gatewayProperties;
 	private final SpelExpressionParser parser = new SpelExpressionParser();
@@ -110,22 +107,6 @@ public class RouteDefinitionRouteLocator implements RouteLocator, BeanFactoryAwa
 			this.predicates.put(key, factory);
 			if (logger.isInfoEnabled()) {
 				logger.info("Loaded RoutePredicateFactory [" + key + "]");
-			}
-		});
-	}
-
-	@SuppressWarnings("unchecked")
-	public void setRoutePredicateClasses(List<Class> classes) {
-		classes.forEach(clazz -> {
-			String name = NameUtils.normalizePredicateName(clazz);
-			if (this.routePredicates.containsKey(name)) {
-				this.logger.warn("A RoutePredicate named "+ name
-						+ " already exists, class: " + this.routePredicates.get(name)
-						+ ". It will be overwritten.");
-			}
-			this.routePredicates.put(name, (Class<RoutePredicate>)clazz);
-			if (logger.isInfoEnabled()) {
-				logger.info("Loaded RoutePredicate [" + name + "]");
 			}
 		});
 	}
@@ -309,34 +290,30 @@ public class RouteDefinitionRouteLocator implements RouteLocator, BeanFactoryAwa
 		return predicate;
 	}
 
-	private Predicate<ServerWebExchange> lookup(RouteDefinition routeDefinition, PredicateDefinition predicate) {
-		RoutePredicateFactory predicateFactory = this.predicates.get(predicate.getName());
-		RoutePredicate routePredicate = null;
-		if (predicateFactory == null) {
-			Class filterClass = this.routePredicates.get(predicate.getName());
-			if (filterClass == null) {
-				throw new IllegalArgumentException("Unable to find RoutePredicateFactory or RoutePredicate with name " + predicate.getName());
-			}
-			routePredicate = RoutePredicate.class.cast(this.beanFactory.getBean(filterClass));
+	@SuppressWarnings("unchecked")
+	private Predicate<ServerWebExchange> lookup(RouteDefinition route, PredicateDefinition predicate) {
+		RoutePredicateFactory<Object> factory = this.predicates.get(predicate.getName());
+		if (factory == null) {
+            throw new IllegalArgumentException("Unable to find RoutePredicateFactory with name " + predicate.getName());
 		}
 		Map<String, String> args = predicate.getArgs();
 		if (logger.isDebugEnabled()) {
-			logger.debug("RouteDefinition " + routeDefinition.getId() + " applying "
+			logger.debug("RouteDefinition " + route.getId() + " applying "
 					+ args + " to " + predicate.getName());
 		}
 
-		if (routePredicate == null) {
-			Tuple tuple = getTuple(predicateFactory, args, this.parser, this.beanFactory);
-			routePredicate = exchange -> predicateFactory.apply(tuple).test(exchange);
+		if (!factory.isConfigurable()) {
+			Tuple tuple = getTuple(factory, args, this.parser, this.beanFactory);
+			return factory.apply(tuple);
 		} else {
-			Map<String, Object> properties = getMap(routePredicate, args, this.parser, this.beanFactory);
-			ConfigurationUtils.bind(routePredicate, properties,
+			Map<String, Object> properties = getMap(factory, args, this.parser, this.beanFactory);
+			Object config = factory.newConfig();
+			ConfigurationUtils.bind(config, properties,
 					"", predicate.getName(), validator);
 			if (this.publisher != null) {
-				this.publisher.publishEvent(new PredicateArgsEvent(this, routeDefinition.getId(), properties));
+				this.publisher.publishEvent(new PredicateArgsEvent(this, route.getId(), properties));
 			}
+			return factory.apply(config);
 		}
-
-		return routePredicate;
 	}
 }
