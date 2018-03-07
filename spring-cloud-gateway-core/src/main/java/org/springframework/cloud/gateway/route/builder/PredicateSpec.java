@@ -78,7 +78,8 @@ public class PredicateSpec extends UriSpec {
 	}
 
 	public BooleanSpec host(String pattern) {
-		return predicate(getBean(HostRoutePredicateFactory.class).apply(pattern));
+		return predicate(getBean(HostRoutePredicateFactory.class)
+				.apply(c-> c.setPattern(pattern)));
 	}
 
 	public BooleanSpec method(String method) {
