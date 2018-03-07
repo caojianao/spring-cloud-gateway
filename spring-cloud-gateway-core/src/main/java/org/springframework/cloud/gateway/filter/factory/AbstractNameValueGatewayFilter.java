@@ -23,7 +23,7 @@ import javax.validation.constraints.NotEmpty;
 import java.util.Arrays;
 import java.util.List;
 
-public abstract class NameValueGatewayFilter<T extends NameValueGatewayFilter> implements GatewayFilter {
+public abstract class AbstractNameValueGatewayFilter<T extends AbstractNameValueGatewayFilter> implements GatewayFilter {
 	@NotEmpty
 	protected String name;
 	@NotEmpty
@@ -43,6 +43,7 @@ public abstract class NameValueGatewayFilter<T extends NameValueGatewayFilter> i
     }
 
 	public T setValue(String value) {
+		this.value = value;
 		return getThis();
     }
 

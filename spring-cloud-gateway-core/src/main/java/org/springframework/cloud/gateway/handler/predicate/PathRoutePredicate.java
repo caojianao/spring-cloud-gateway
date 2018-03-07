@@ -19,31 +19,43 @@ package org.springframework.cloud.gateway.handler.predicate;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.function.Predicate;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 import org.springframework.http.server.PathContainer;
-import org.springframework.tuple.Tuple;
 import org.springframework.web.server.ServerWebExchange;
 import org.springframework.web.util.pattern.PathPattern;
 import org.springframework.web.util.pattern.PathPattern.PathMatchInfo;
 import org.springframework.web.util.pattern.PathPatternParser;
 
+import static org.springframework.cloud.gateway.handler.predicate.RoutePredicateFactory.PATTERN_KEY;
 import static org.springframework.cloud.gateway.support.ServerWebExchangeUtils.URI_TEMPLATE_VARIABLES_ATTRIBUTE;
 import static org.springframework.http.server.PathContainer.parsePath;
 
 /**
  * @author Spencer Gibb
  */
-public class PathRoutePredicateFactory implements RoutePredicateFactory {
+public class PathRoutePredicate implements RoutePredicate {
 	private static final Log log = LogFactory.getLog(RoutePredicateFactory.class);
 
 	private PathPatternParser pathPatternParser = new PathPatternParser();
+	private String pattern;
+	private PathPattern pathPattern;
 
 	public void setPathPatternParser(PathPatternParser pathPatternParser) {
 		this.pathPatternParser = pathPatternParser;
+		updatePattern(this.pattern);
+	}
+
+	public String getPattern() {
+		return pattern;
+	}
+
+	public PathRoutePredicate setPattern(String pattern) {
+		this.pattern = pattern;
+		updatePattern(this.pattern);
+		return this;
 	}
 
 	@Override
@@ -52,31 +64,28 @@ public class PathRoutePredicateFactory implements RoutePredicateFactory {
 	}
 
 	@Override
-	public Predicate<ServerWebExchange> apply(Tuple args) {
-		String unparsedPattern = args.getString(PATTERN_KEY);
-		return apply(unparsedPattern);
+	public boolean test(ServerWebExchange exchange) {
+        PathContainer path = parsePath(exchange.getRequest().getURI().getPath());
+
+        boolean match = pathPattern.matches(path);
+        traceMatch("Pattern", pathPattern.getPatternString(), path, match);
+        if (match) {
+            PathMatchInfo uriTemplateVariables = pathPattern.matchAndExtract(path);
+            exchange.getAttributes().put(URI_TEMPLATE_VARIABLES_ATTRIBUTE, uriTemplateVariables);
+            return true;
+        }
+        else {
+            return false;
+        }
 	}
 
-	public Predicate<ServerWebExchange> apply(String unparsedPattern) {
-		PathPattern pattern;
-		synchronized (this.pathPatternParser) {
-			pattern = this.pathPatternParser.parse(unparsedPattern);
+	private void updatePattern(String unparsedPattern) {
+		if (unparsedPattern == null) {
+			return;
 		}
-
-		return exchange -> {
-			PathContainer path = parsePath(exchange.getRequest().getURI().getPath());
-
-			boolean match = pattern.matches(path);
-			traceMatch("Pattern", pattern.getPatternString(), path, match);
-			if (match) {
-				PathMatchInfo uriTemplateVariables = pattern.matchAndExtract(path);
-				exchange.getAttributes().put(URI_TEMPLATE_VARIABLES_ATTRIBUTE, uriTemplateVariables);
-				return true;
-			}
-			else {
-				return false;
-			}
-		};
+		synchronized (this.pathPatternParser) {
+			pathPattern = this.pathPatternParser.parse(unparsedPattern);
+		}
 	}
 
 	private static void traceMatch(String prefix, Object desired, Object actual, boolean match) {

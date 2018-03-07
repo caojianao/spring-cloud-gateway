@@ -33,11 +33,13 @@ import org.springframework.beans.factory.BeanFactoryAware;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.gateway.config.GatewayProperties;
 import org.springframework.cloud.gateway.event.FilterArgsEvent;
+import org.springframework.cloud.gateway.event.PredicateArgsEvent;
 import org.springframework.cloud.gateway.filter.FilterDefinition;
 import org.springframework.cloud.gateway.filter.GatewayFilter;
 import org.springframework.cloud.gateway.filter.OrderedGatewayFilter;
 import org.springframework.cloud.gateway.filter.factory.GatewayFilterFactory;
 import org.springframework.cloud.gateway.handler.predicate.PredicateDefinition;
+import org.springframework.cloud.gateway.handler.predicate.RoutePredicate;
 import org.springframework.cloud.gateway.handler.predicate.RoutePredicateFactory;
 import org.springframework.cloud.gateway.support.ArgumentHints;
 import org.springframework.cloud.gateway.support.ConfigurationUtils;
@@ -65,10 +67,12 @@ public class RouteDefinitionRouteLocator implements RouteLocator, BeanFactoryAwa
 	protected final Log logger = LogFactory.getLog(getClass());
 
 	private final RouteDefinitionLocator routeDefinitionLocator;
+	@Deprecated
 	private final Map<String, RoutePredicateFactory> predicates = new LinkedHashMap<>();
+	private final Map<String, Class<? extends RoutePredicate>> routePredicates = new HashMap<>();
 	@Deprecated
 	private final Map<String, GatewayFilterFactory> gatewayFilterFactories = new HashMap<>();
-	private final Map<String, Class> gatewayFilters = new HashMap<>();
+	private final Map<String, Class<? extends GatewayFilter>> gatewayFilters = new HashMap<>();
 	private final GatewayProperties gatewayProperties;
 	private final SpelExpressionParser parser = new SpelExpressionParser();
 	private BeanFactory beanFactory;
@@ -118,12 +122,28 @@ public class RouteDefinitionRouteLocator implements RouteLocator, BeanFactoryAwa
 			String name = NameUtils.normalizeFilterName(clazz);
 			if (this.gatewayFilters.containsKey(name)) {
 				this.logger.warn("A GatewayFilter named "+ name
-						+ " already exists, class: " + this.predicates.get(name)
+						+ " already exists, class: " + this.gatewayFilters.get(name)
 						+ ". It will be overwritten.");
 			}
 			this.gatewayFilters.put(name, (Class<GatewayFilter>)clazz);
 			if (logger.isInfoEnabled()) {
 				logger.info("Loaded GatewayFilter [" + name + "]");
+			}
+		});
+	}
+
+	@SuppressWarnings("unchecked")
+	public void setRoutePredicateClasses(List<Class> classes) {
+		classes.forEach(clazz -> {
+			String name = NameUtils.normalizePredicateName(clazz);
+			if (this.routePredicates.containsKey(name)) {
+				this.logger.warn("A RoutePredicate named "+ name
+						+ " already exists, class: " + this.routePredicates.get(name)
+						+ ". It will be overwritten.");
+			}
+			this.routePredicates.put(name, (Class<RoutePredicate>)clazz);
+			if (logger.isInfoEnabled()) {
+				logger.info("Loaded RoutePredicate [" + name + "]");
 			}
 		});
 	}
@@ -165,7 +185,7 @@ public class RouteDefinitionRouteLocator implements RouteLocator, BeanFactoryAwa
 					if (factory == null) {
 						Class filterClass = this.gatewayFilters.get(definition.getName());
 						if (filterClass == null) {
-							throw new IllegalArgumentException("Unable to find GatewayFilterFactory with name " + definition.getName());
+							throw new IllegalArgumentException("Unable to find GatewayFilterFactory or GatewayFilter with name " + definition.getName());
 						}
 						gatewayFilter = GatewayFilter.class.cast(this.beanFactory.getBean(filterClass));
 					}
@@ -307,9 +327,14 @@ public class RouteDefinitionRouteLocator implements RouteLocator, BeanFactoryAwa
 	}
 
 	private Predicate<ServerWebExchange> lookup(RouteDefinition routeDefinition, PredicateDefinition predicate) {
-		RoutePredicateFactory found = this.predicates.get(predicate.getName());
-		if (found == null) {
-			throw new IllegalArgumentException("Unable to find RoutePredicateFactory with name " + predicate.getName());
+		RoutePredicateFactory predicateFactory = this.predicates.get(predicate.getName());
+		RoutePredicate routePredicate = null;
+		if (predicateFactory == null) {
+			Class filterClass = this.routePredicates.get(predicate.getName());
+			if (filterClass == null) {
+				throw new IllegalArgumentException("Unable to find RoutePredicateFactory or RoutePredicate with name " + predicate.getName());
+			}
+			routePredicate = RoutePredicate.class.cast(this.beanFactory.getBean(filterClass));
 		}
 		Map<String, String> args = predicate.getArgs();
 		if (logger.isDebugEnabled()) {
@@ -317,8 +342,18 @@ public class RouteDefinitionRouteLocator implements RouteLocator, BeanFactoryAwa
 					+ args + " to " + predicate.getName());
 		}
 
-		Tuple tuple = getTuple(found, args, this.parser, this.beanFactory);
+		if (routePredicate == null) {
+			Tuple tuple = getTuple(predicateFactory, args, this.parser, this.beanFactory);
+			routePredicate = exchange -> predicateFactory.apply(tuple).test(exchange);
+		} else {
+			Map<String, Object> properties = getMap(routePredicate, args, this.parser, this.beanFactory);
+			ConfigurationUtils.bind(routePredicate, properties,
+					"", predicate.getName(), validator);
+			if (this.publisher != null) {
+				this.publisher.publishEvent(new PredicateArgsEvent(this, routeDefinition.getId(), properties));
+			}
+		}
 
-		return found.apply(tuple);
+		return routePredicate;
 	}
 }

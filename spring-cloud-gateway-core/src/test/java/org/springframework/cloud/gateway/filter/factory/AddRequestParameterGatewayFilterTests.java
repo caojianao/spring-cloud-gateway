@@ -43,7 +43,7 @@ import static org.springframework.cloud.gateway.test.TestUtils.getMap;
 @SpringBootTest(webEnvironment = RANDOM_PORT)
 @DirtiesContext
 @ActiveProfiles(profiles = "request-parameter-web-filter")
-public class AddRequestParameterGatewayFilterFactoryTests extends BaseWebClientTests {
+public class AddRequestParameterGatewayFilterTests extends BaseWebClientTests {
 
 	@Test
 	public void addRequestParameterFilterWorksBlankQuery() {

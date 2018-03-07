@@ -15,7 +15,11 @@
  *
  */
 
-package org.springframework.cloud.gateway.filter.factory;
+package org.springframework.cloud.gateway.handler.predicate;
+
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -25,16 +29,11 @@ import org.springframework.beans.factory.BeanFactoryAware;
 import org.springframework.beans.factory.BeanFactoryUtils;
 import org.springframework.beans.factory.ListableBeanFactory;
 import org.springframework.beans.factory.config.BeanPostProcessor;
-import org.springframework.cloud.gateway.filter.GatewayFilter;
 import org.springframework.cloud.gateway.route.RouteDefinitionRouteLocator;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.stream.Collectors;
+public class RoutePredicateBeanPostProcessor implements BeanPostProcessor, BeanFactoryAware {
 
-public class GatewayFilterBeanPostProcessor implements BeanPostProcessor, BeanFactoryAware {
-
-	private static final Log log = LogFactory.getLog(GatewayFilterBeanPostProcessor.class);
+	private static final Log log = LogFactory.getLog(RoutePredicateBeanPostProcessor.class);
 
 	private BeanFactory beanFactory;
 
@@ -49,19 +48,19 @@ public class GatewayFilterBeanPostProcessor implements BeanPostProcessor, BeanFa
 			String[] names = new String[0];
 			if (beanFactory instanceof ListableBeanFactory) {
 				ListableBeanFactory factory = (ListableBeanFactory) beanFactory;
-				names = BeanFactoryUtils.beanNamesForTypeIncludingAncestors(factory, GatewayFilter.class);
+				names = BeanFactoryUtils.beanNamesForTypeIncludingAncestors(factory, RoutePredicate.class);
 			}
 
 			List<Class> list = Arrays.stream(names).map(name -> {
 				Class<?> type = beanFactory.getType(name);
 				if (!beanFactory.isPrototype(name)) {
-					log.warn("GatewayFilter is not prototype scoped. This may cause strange behavior. '" +
+					log.warn("GatewayPredicate is not prototype scoped. This may cause strange behavior. '" +
 							name + "', "+ type);
 				}
 				return type;
 			}).collect(Collectors.toList());
 			RouteDefinitionRouteLocator locator = (RouteDefinitionRouteLocator) bean;
-			locator.setGatewayFilterClasses(list);
+			locator.setRoutePredicateClasses(list);
 		}
 		return bean;
 	}

@@ -22,14 +22,14 @@ import java.net.URI;
 import org.springframework.cloud.client.discovery.DiscoveryClient;
 import org.springframework.cloud.gateway.filter.FilterDefinition;
 import org.springframework.cloud.gateway.filter.factory.RewritePathGatewayFilterFactory;
-import org.springframework.cloud.gateway.handler.predicate.PathRoutePredicateFactory;
+import org.springframework.cloud.gateway.handler.predicate.PathRoutePredicate;
 import org.springframework.cloud.gateway.handler.predicate.PredicateDefinition;
 import org.springframework.cloud.gateway.route.RouteDefinition;
 import org.springframework.cloud.gateway.route.RouteDefinitionLocator;
 
 import static org.springframework.cloud.gateway.filter.factory.RewritePathGatewayFilterFactory.REGEXP_KEY;
 import static org.springframework.cloud.gateway.filter.factory.RewritePathGatewayFilterFactory.REPLACEMENT_KEY;
-import static org.springframework.cloud.gateway.handler.predicate.PathRoutePredicateFactory.PATTERN_KEY;
+import static org.springframework.cloud.gateway.handler.predicate.RoutePredicateFactory.PATTERN_KEY;
 import static org.springframework.cloud.gateway.support.NameUtils.normalizeFilterFactoryName;
 import static org.springframework.cloud.gateway.support.NameUtils.normalizePredicateName;
 
@@ -60,13 +60,13 @@ public class DiscoveryClientRouteDefinitionLocator implements RouteDefinitionLoc
 
 					// add a predicate that matches the url at /serviceId
 					/*PredicateDefinition barePredicate = new PredicateDefinition();
-					barePredicate.setName(normalizePredicateName(PathRoutePredicateFactory.class));
+					barePredicate.setName(normalizePredicateName(PathRoutePredicate.class));
 					barePredicate.addArg(PATTERN_KEY, "/" + serviceId);
 					routeDefinition.getPredicates().add(barePredicate);*/
 
 					// add a predicate that matches the url at /serviceId/**
 					PredicateDefinition subPredicate = new PredicateDefinition();
-					subPredicate.setName(normalizePredicateName(PathRoutePredicateFactory.class));
+					subPredicate.setName(normalizePredicateName(PathRoutePredicate.class));
 					subPredicate.addArg(PATTERN_KEY, "/" + serviceId + "/**");
 					routeDefinition.getPredicates().add(subPredicate);
 

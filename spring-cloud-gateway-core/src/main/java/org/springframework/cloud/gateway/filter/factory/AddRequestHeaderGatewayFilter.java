@@ -28,7 +28,7 @@ import reactor.core.publisher.Mono;
  * @author Spencer Gibb
  */
 @Validated
-public class AddRequestHeaderGatewayFilter extends NameValueGatewayFilter<AddRequestHeaderGatewayFilter> {
+public class AddRequestHeaderGatewayFilter extends AbstractNameValueGatewayFilter<AddRequestHeaderGatewayFilter> {
 
 	@Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {

@@ -42,7 +42,7 @@ import org.springframework.cloud.gateway.filter.RouteToRequestUrlFilter;
 import org.springframework.cloud.gateway.filter.WebsocketRoutingFilter;
 import org.springframework.cloud.gateway.filter.annotation.GatewayFilter;
 import org.springframework.cloud.gateway.filter.factory.AddRequestHeaderGatewayFilter;
-import org.springframework.cloud.gateway.filter.factory.AddRequestParameterGatewayFilterFactory;
+import org.springframework.cloud.gateway.filter.factory.AddRequestParameterGatewayFilter;
 import org.springframework.cloud.gateway.filter.factory.AddResponseHeaderGatewayFilterFactory;
 import org.springframework.cloud.gateway.filter.factory.GatewayFilterBeanPostProcessor;
 import org.springframework.cloud.gateway.filter.factory.GatewayFilterFactory;
@@ -72,6 +72,7 @@ import org.springframework.cloud.gateway.filter.ratelimit.PrincipalNameKeyResolv
 import org.springframework.cloud.gateway.filter.ratelimit.RateLimiter;
 import org.springframework.cloud.gateway.handler.FilteringWebHandler;
 import org.springframework.cloud.gateway.handler.RoutePredicateHandlerMapping;
+import org.springframework.cloud.gateway.handler.annotation.RoutePredicate;
 import org.springframework.cloud.gateway.handler.predicate.AfterRoutePredicateFactory;
 import org.springframework.cloud.gateway.handler.predicate.BeforeRoutePredicateFactory;
 import org.springframework.cloud.gateway.handler.predicate.BetweenRoutePredicateFactory;
@@ -79,9 +80,10 @@ import org.springframework.cloud.gateway.handler.predicate.CookieRoutePredicateF
 import org.springframework.cloud.gateway.handler.predicate.HeaderRoutePredicateFactory;
 import org.springframework.cloud.gateway.handler.predicate.HostRoutePredicateFactory;
 import org.springframework.cloud.gateway.handler.predicate.MethodRoutePredicateFactory;
-import org.springframework.cloud.gateway.handler.predicate.PathRoutePredicateFactory;
+import org.springframework.cloud.gateway.handler.predicate.PathRoutePredicate;
 import org.springframework.cloud.gateway.handler.predicate.QueryRoutePredicateFactory;
 import org.springframework.cloud.gateway.handler.predicate.RemoteAddrRoutePredicateFactory;
+import org.springframework.cloud.gateway.handler.predicate.RoutePredicateBeanPostProcessor;
 import org.springframework.cloud.gateway.handler.predicate.RoutePredicateFactory;
 import org.springframework.cloud.gateway.route.CachingRouteLocator;
 import org.springframework.cloud.gateway.route.CompositeRouteDefinitionLocator;
@@ -332,6 +334,11 @@ public class GatewayAutoConfiguration {
 	// Predicate Factory beans
 
 	@Bean
+	public RoutePredicateBeanPostProcessor routePredicateBeanPostProcessor() {
+		return new RoutePredicateBeanPostProcessor();
+	}
+
+	@Bean
 	public AfterRoutePredicateFactory afterRoutePredicateFactory() {
 		return new AfterRoutePredicateFactory();
 	}
@@ -367,8 +374,9 @@ public class GatewayAutoConfiguration {
 	}
 
 	@Bean
-	public PathRoutePredicateFactory pathRoutePredicateFactory() {
-		return new PathRoutePredicateFactory();
+	@RoutePredicate
+	public PathRoutePredicate pathRoutePredicate() {
+		return new PathRoutePredicate();
 	}
 
 	@Bean
@@ -395,8 +403,9 @@ public class GatewayAutoConfiguration {
 	}
 
 	@Bean
-	public AddRequestParameterGatewayFilterFactory addRequestParameterGatewayFilterFactory() {
-		return new AddRequestParameterGatewayFilterFactory();
+	@GatewayFilter
+	public AddRequestParameterGatewayFilter addRequestParameterGatewayFilter() {
+		return new AddRequestParameterGatewayFilter();
 	}
 
 	@Bean

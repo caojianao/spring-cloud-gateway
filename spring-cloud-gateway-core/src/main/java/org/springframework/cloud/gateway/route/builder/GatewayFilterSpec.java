@@ -26,7 +26,7 @@ import org.apache.commons.logging.LogFactory;
 import org.springframework.cloud.gateway.filter.GatewayFilter;
 import org.springframework.cloud.gateway.filter.OrderedGatewayFilter;
 import org.springframework.cloud.gateway.filter.factory.AddRequestHeaderGatewayFilter;
-import org.springframework.cloud.gateway.filter.factory.AddRequestParameterGatewayFilterFactory;
+import org.springframework.cloud.gateway.filter.factory.AddRequestParameterGatewayFilter;
 import org.springframework.cloud.gateway.filter.factory.AddResponseHeaderGatewayFilterFactory;
 import org.springframework.cloud.gateway.filter.factory.HystrixGatewayFilterFactory;
 import org.springframework.cloud.gateway.filter.factory.PrefixPathGatewayFilterFactory;
@@ -103,7 +103,7 @@ public class GatewayFilterSpec extends UriSpec {
 	}
 
 	public GatewayFilterSpec addRequestParameter(String param, String value) {
-		return filter(getBean(AddRequestParameterGatewayFilterFactory.class).apply(param, value));
+		return filter(getBean(AddRequestParameterGatewayFilter.class).setName(param).setValue(value));
 	}
 
 	public GatewayFilterSpec addResponseHeader(String headerName, String headerValue) {

@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2018 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,24 +17,10 @@
 
 package org.springframework.cloud.gateway.handler.predicate;
 
-import java.util.function.Predicate;
-
 import org.springframework.cloud.gateway.support.ArgumentHints;
-import org.springframework.cloud.gateway.support.NameUtils;
-import org.springframework.tuple.Tuple;
 import org.springframework.web.server.ServerWebExchange;
 
-/**
- * @author Spencer Gibb
- */
-@FunctionalInterface
-public interface RoutePredicateFactory extends ArgumentHints {
-	String PATTERN_KEY = "pattern";
+import java.util.function.Predicate;
 
-	Predicate<ServerWebExchange> apply(Tuple args);
-
-	default String name() {
-		return NameUtils.normalizeRoutePredicateName(getClass());
-	}
-
+public interface RoutePredicate extends Predicate<ServerWebExchange>, ArgumentHints {
 }

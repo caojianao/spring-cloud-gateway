@@ -26,7 +26,7 @@ import org.junit.runners.Suite.SuiteClasses;
 import org.junit.runners.model.Statement;
 
 import org.springframework.cloud.gateway.filter.factory.AddRequestHeaderGatewayFilterTests;
-import org.springframework.cloud.gateway.filter.factory.AddRequestParameterGatewayFilterFactoryTests;
+import org.springframework.cloud.gateway.filter.factory.AddRequestParameterGatewayFilterTests;
 import org.springframework.cloud.gateway.filter.factory.HystrixGatewayFilterFactoryTests;
 import org.springframework.cloud.gateway.filter.factory.PreserveHostHeaderGatewayFilterFactoryTests;
 import org.springframework.cloud.gateway.filter.factory.RedirectToGatewayFilterFactoryTests;
@@ -50,7 +50,7 @@ import org.springframework.cloud.gateway.handler.predicate.BeforeRoutePredicateF
 import org.springframework.cloud.gateway.handler.predicate.BetweenRoutePredicateFactoryTests;
 import org.springframework.cloud.gateway.handler.predicate.HostRoutePredicateFactoryTests;
 import org.springframework.cloud.gateway.handler.predicate.MethodRoutePredicateFactoryTests;
-import org.springframework.cloud.gateway.handler.predicate.PathRoutePredicateFactoryTests;
+import org.springframework.cloud.gateway.handler.predicate.PathRoutePredicateTests;
 import org.springframework.cloud.gateway.route.RouteDefinitionRouteLocatorTests;
 import org.springframework.cloud.gateway.test.websocket.WebSocketIntegrationTests;
 
@@ -87,7 +87,7 @@ import static org.junit.Assume.assumeThat;
 		SecureHeadersGatewayFilterFactoryTests.class,
 		RequestRateLimiterGatewayFilterTests.class,
 		SetPathGatewayFilterFactoryIntegrationTests.class,
-		AddRequestParameterGatewayFilterFactoryTests.class,
+		AddRequestParameterGatewayFilterTests.class,
 		SetResponseGatewayFilterFactoryTests.class,
 		PrincipalNameKeyResolverIntegrationTests.class,
 		RedisRateLimiterTests.class,
@@ -97,7 +97,7 @@ import static org.junit.Assume.assumeThat;
 		MethodRoutePredicateFactoryTests.class,
 		HostRoutePredicateFactoryTests.class,
 		AfterRoutePredicateFactoryTests.class,
-		PathRoutePredicateFactoryTests.class,
+		PathRoutePredicateTests.class,
 		BetweenRoutePredicateFactoryTests.class,
 		BeforeRoutePredicateFactoryTests.class,
 
