@@ -17,23 +17,21 @@
 
 package org.springframework.cloud.gateway.filter.ratelimit;
 
-import org.springframework.beans.BeanUtils;
-import org.springframework.cloud.gateway.event.FilterArgsEvent;
-import org.springframework.cloud.gateway.support.ConfigurationUtils;
-import org.springframework.context.ApplicationListener;
-import org.springframework.validation.Validator;
-
-import java.util.HashMap;
 import java.util.Map;
 
-public abstract class AbstractRateLimiter<C> implements RateLimiter<C>, ApplicationListener<FilterArgsEvent> {
-	private Map<String, C> config = new HashMap<>();
-	private Class<C> configClass;
+import org.springframework.cloud.gateway.event.FilterArgsEvent;
+import org.springframework.cloud.gateway.support.AbstractStatefulConfigurable;
+import org.springframework.cloud.gateway.support.ConfigurationUtils;
+import org.springframework.context.ApplicationListener;
+import org.springframework.core.style.ToStringCreator;
+import org.springframework.validation.Validator;
+
+public abstract class AbstractRateLimiter<C> extends AbstractStatefulConfigurable<C> implements RateLimiter<C>, ApplicationListener<FilterArgsEvent> {
 	private String configurationPropertyName;
 	private final Validator validator;
 
 	protected AbstractRateLimiter(Class<C> configClass, String configurationPropertyName, Validator validator) {
-		this.configClass = configClass;
+		super(configClass);
 		this.configurationPropertyName = configurationPropertyName;
 		this.validator = validator;
 	}
@@ -44,20 +42,6 @@ public abstract class AbstractRateLimiter<C> implements RateLimiter<C>, Applicat
 
 	protected Validator getValidator() {
 		return validator;
-	}
-
-	@Override
-	public Map<String, C> getConfig() {
-		return this.config;
-	}
-
-	protected Class<C> getConfigClass() {
-		return configClass;
-	}
-
-	@Override
-	public C newConfig() {
-		return BeanUtils.instantiateClass(this.configClass);
 	}
 
 	@Override
@@ -72,7 +56,7 @@ public abstract class AbstractRateLimiter<C> implements RateLimiter<C>, Applicat
 		C routeConfig = newConfig();
 		ConfigurationUtils.bind(routeConfig, args,
 				configurationPropertyName, configurationPropertyName, validator);
-		this.config.put(routeId, routeConfig);
+		getConfig().put(routeId, routeConfig);
 	}
 
 	private boolean hasRelevantKey(Map<String, Object> args) {
@@ -82,9 +66,11 @@ public abstract class AbstractRateLimiter<C> implements RateLimiter<C>, Applicat
 
 	@Override
 	public String toString() {
-		return getClass().getSimpleName()+"{" +
-				"config=" + config +
-				", configurationPropertyName='" + configurationPropertyName + '\'' +
-				'}';
+		return new ToStringCreator(this)
+				.append("configurationPropertyName", configurationPropertyName)
+				.append("config", getConfig())
+				.append("configClass", getConfigClass())
+				.toString();
 	}
+
 }

@@ -17,7 +17,28 @@
 
 package org.springframework.cloud.gateway.support;
 
-public interface Configurable<C> {
-	Class<C> getConfigClass();
-	C newConfig();
+import java.util.HashMap;
+import java.util.Map;
+
+import org.springframework.core.style.ToStringCreator;
+
+public abstract class AbstractStatefulConfigurable<C> extends AbstractConfigurable<C> implements StatefulConfigurable<C> {
+	private Map<String, C> config = new HashMap<>();
+
+	protected AbstractStatefulConfigurable(Class<C> configClass) {
+		super(configClass);
+	}
+
+	@Override
+	public Map<String, C> getConfig() {
+		return this.config;
+	}
+
+	@Override
+	public String toString() {
+		return new ToStringCreator(this)
+				.append("config", config)
+				.append("configClass", getConfigClass())
+				.toString();
+	}
 }

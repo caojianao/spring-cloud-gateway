@@ -18,6 +18,7 @@ package org.springframework.cloud.gateway.filter.ratelimit;
 
 import java.security.Principal;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 
 import org.junit.AfterClass;
@@ -110,7 +111,8 @@ public class PrincipalNameKeyResolverIntegrationTests {
 		public RouteLocator customRouteLocator(RouteLocatorBuilder builder) {
 			return builder.routes()
 					.route(r -> r.path("/myapi/**")
-							.filters(f -> f.requestRateLimiter(MyRateLimiter.class)
+							.filters(f -> f.requestRateLimiter()
+									.rateLimiter(MyRateLimiter.class, rl -> {})
 									.and()
 									.prefixPath("/downstream"))
 							.uri("http://localhost:"+port))
@@ -140,14 +142,21 @@ public class PrincipalNameKeyResolverIntegrationTests {
 
 		class MyRateLimiter implements RateLimiter<Object> {
 
+			private HashMap<String, Object> map = new HashMap<>();
+
 			@Override
 			public Mono<Response> isAllowed(String routeId, String id) {
 				return Mono.just(new RateLimiter.Response(true, Long.MAX_VALUE));
 			}
 
 			@Override
+			public Class<Object> getConfigClass() {
+				return Object.class;
+			}
+
+			@Override
 			public Map<String, Object> getConfig() {
-				return null;
+				return map;
 			}
 
 			@Override

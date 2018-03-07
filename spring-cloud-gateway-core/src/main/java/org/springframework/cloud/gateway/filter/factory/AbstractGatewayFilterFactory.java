@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2018 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,20 +17,24 @@
 
 package org.springframework.cloud.gateway.filter.factory;
 
-import org.springframework.cloud.gateway.filter.GatewayFilterChain;
-import org.springframework.web.server.ServerWebExchange;
+import org.springframework.cloud.gateway.filter.GatewayFilter;
+import org.springframework.cloud.gateway.support.AbstractConfigurable;
+import org.springframework.tuple.Tuple;
 
-import reactor.core.publisher.Mono;
+public abstract class AbstractGatewayFilterFactory<C>
+		extends AbstractConfigurable<C> implements GatewayFilterFactory<C> {
 
-/**
- * @author Spencer Gibb
- */
-public class AddResponseHeaderGatewayFilter extends AbstractNameValueGatewayFilter<AddResponseHeaderGatewayFilter> {
+	public AbstractGatewayFilterFactory(Class<C> configClass) {
+		super(configClass);
+	}
 
 	@Override
-	public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
-        exchange.getResponse().getHeaders().add(getName(), getValue());
+	public boolean isConfigurable() {
+		return true;
+	}
 
-        return chain.filter(exchange);
+	@Override
+	public GatewayFilter apply(Tuple args) {
+		throw new UnsupportedOperationException("apply(Tuple) not supported");
 	}
 }

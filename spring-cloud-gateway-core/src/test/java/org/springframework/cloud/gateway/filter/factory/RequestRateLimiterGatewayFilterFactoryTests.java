@@ -8,6 +8,7 @@ import org.springframework.boot.SpringBootConfiguration;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.cloud.gateway.filter.GatewayFilter;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.ratelimit.KeyResolver;
 import org.springframework.cloud.gateway.filter.ratelimit.RateLimiter;
@@ -39,7 +40,7 @@ import reactor.core.publisher.Mono;
 @RunWith(SpringRunner.class)
 @SpringBootTest(webEnvironment = RANDOM_PORT)
 @DirtiesContext
-public class RequestRateLimiterGatewayFilterTests extends BaseWebClientTests {
+public class RequestRateLimiterGatewayFilterFactoryTests extends BaseWebClientTests {
 
 	@Autowired
 	private ApplicationContext context;
@@ -83,8 +84,8 @@ public class RequestRateLimiterGatewayFilterTests extends BaseWebClientTests {
 
 		when(this.filterChain.filter(exchange)).thenReturn(Mono.empty());
 
-		RequestRateLimiterGatewayFilter filter = this.context.getBean(RequestRateLimiterGatewayFilter.class);
-		filter.setKeyResolver(keyResolver);
+		RequestRateLimiterGatewayFilterFactory factory = this.context.getBean(RequestRateLimiterGatewayFilterFactory.class);
+		GatewayFilter filter = factory.apply(config -> config.setKeyResolver(keyResolver));
 
 		Mono<Void> response = filter.filter(exchange, this.filterChain);
 		response.subscribe(aVoid -> assertThat(exchange.getResponse().getStatusCode())

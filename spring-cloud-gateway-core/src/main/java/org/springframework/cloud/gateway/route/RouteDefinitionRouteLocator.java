@@ -70,9 +70,7 @@ public class RouteDefinitionRouteLocator implements RouteLocator, BeanFactoryAwa
 	@Deprecated
 	private final Map<String, RoutePredicateFactory> predicates = new LinkedHashMap<>();
 	private final Map<String, Class<? extends RoutePredicate>> routePredicates = new HashMap<>();
-	@Deprecated
 	private final Map<String, GatewayFilterFactory> gatewayFilterFactories = new HashMap<>();
-	private final Map<String, Class<? extends GatewayFilter>> gatewayFilters = new HashMap<>();
 	private final GatewayProperties gatewayProperties;
 	private final SpelExpressionParser parser = new SpelExpressionParser();
 	private BeanFactory beanFactory;
@@ -112,22 +110,6 @@ public class RouteDefinitionRouteLocator implements RouteLocator, BeanFactoryAwa
 			this.predicates.put(key, factory);
 			if (logger.isInfoEnabled()) {
 				logger.info("Loaded RoutePredicateFactory [" + key + "]");
-			}
-		});
-	}
-
-	@SuppressWarnings("unchecked")
-	public void setGatewayFilterClasses(List<Class> classes) {
-		classes.forEach(clazz -> {
-			String name = NameUtils.normalizeFilterName(clazz);
-			if (this.gatewayFilters.containsKey(name)) {
-				this.logger.warn("A GatewayFilter named "+ name
-						+ " already exists, class: " + this.gatewayFilters.get(name)
-						+ ". It will be overwritten.");
-			}
-			this.gatewayFilters.put(name, (Class<GatewayFilter>)clazz);
-			if (logger.isInfoEnabled()) {
-				logger.info("Loaded GatewayFilter [" + name + "]");
 			}
 		});
 	}
@@ -177,36 +159,36 @@ public class RouteDefinitionRouteLocator implements RouteLocator, BeanFactoryAwa
 				.build();
 	}
 
+	@SuppressWarnings("unchecked")
 	private List<GatewayFilter> loadGatewayFilters(String id, List<FilterDefinition> filterDefinitions) {
 		List<GatewayFilter> filters = filterDefinitions.stream()
 				.map(definition -> {
 					GatewayFilterFactory factory = this.gatewayFilterFactories.get(definition.getName());
-					GatewayFilter gatewayFilter = null;
 					if (factory == null) {
-						Class filterClass = this.gatewayFilters.get(definition.getName());
-						if (filterClass == null) {
-							throw new IllegalArgumentException("Unable to find GatewayFilterFactory or GatewayFilter with name " + definition.getName());
-						}
-						gatewayFilter = GatewayFilter.class.cast(this.beanFactory.getBean(filterClass));
+                        throw new IllegalArgumentException("Unable to find GatewayFilterFactory with name " + definition.getName());
 					}
 					Map<String, String> args = definition.getArgs();
 					if (logger.isDebugEnabled()) {
 						logger.debug("RouteDefinition " + id + " applying filter " + args + " to " + definition.getName());
 					}
 
-					if (gatewayFilter == null) {
-						Tuple tuple = getTuple(factory, args, this.parser, this.beanFactory);
-						gatewayFilter = factory.apply(tuple);
-					} else {
-                        Map<String, Object> properties = getMap(gatewayFilter, args, this.parser, this.beanFactory);
-						ConfigurationUtils.bind(gatewayFilter, properties,
-								"", definition.getName(), validator);
-						gatewayFilter.afterConfigurationSet();
+                    if (factory.isConfigurable()) {
+                        Map<String, Object> properties = getMap(factory, args, this.parser, this.beanFactory);
+
+                        Object configuration = factory.newConfig();
+
+                        ConfigurationUtils.bind(configuration, properties,
+                                "", definition.getName(), validator);
+
+						GatewayFilter gatewayFilter = factory.apply(configuration);
                         if (this.publisher != null) {
-                        	this.publisher.publishEvent(new FilterArgsEvent(this, id, properties));
-						}
-					}
-					return gatewayFilter;
+                            this.publisher.publishEvent(new FilterArgsEvent(this, id, properties));
+                        }
+						return gatewayFilter;
+                    } else {
+                        Tuple tuple = getTuple(factory, args, this.parser, this.beanFactory);
+                        return factory.apply(tuple);
+                    }
 				})
 				.collect(Collectors.toList());
 

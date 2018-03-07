@@ -23,9 +23,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringBootConfiguration;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.cloud.gateway.filter.GatewayFilter;
-import org.springframework.cloud.gateway.filter.OrderedGatewayFilter;
-import org.springframework.cloud.gateway.filter.factory.RequestRateLimiterGatewayFilter;
 import org.springframework.cloud.gateway.filter.ratelimit.RedisRateLimiter.Config;
 import org.springframework.cloud.gateway.route.Route;
 import org.springframework.cloud.gateway.route.RouteLocator;
@@ -75,12 +72,6 @@ public class RedisRateLimiterConfigTests {
 		Route route = routeLocator.getRoutes().filter(r -> r.getId().equals(key)).next().block();
 		assertThat(route).isNotNull();
 		assertThat(route.getFilters()).hasSize(1);
-		GatewayFilter gatewayFilter = route.getFilters().get(0);
-		assertThat(gatewayFilter).isInstanceOf(OrderedGatewayFilter.class);
-		GatewayFilter delegate = ((OrderedGatewayFilter) gatewayFilter).getDelegate();
-		assertThat(delegate).isInstanceOf(RequestRateLimiterGatewayFilter.class);
-		RequestRateLimiterGatewayFilter filter = (RequestRateLimiterGatewayFilter) delegate;
-		assertThat(filter.getKeyResolver()).isInstanceOf(keyResolverClass);
 	}
 
 	@EnableAutoConfiguration
@@ -90,14 +81,14 @@ public class RedisRateLimiterConfigTests {
 		@Bean
 		public RouteLocator testRouteLocator(RouteLocatorBuilder builder) {
 			return builder.routes()
-					.route("custom_redis_rate_limiter",
-							r -> r.path("/custom")
-							.filters(f -> f.requestRateLimiter(RedisRateLimiter.class)
-									.keyResolver(new MyKeyResolver())
-									.configure(config -> config.setBurstCapacity(40)
-											.setReplenishRate(20)))
-									.uri("http://localhost"))
+					.route("custom_redis_rate_limiter", r -> r.path("/custom")
+							.filters(f -> f.requestRateLimiter()
+									.rateLimiter(RedisRateLimiter.class,
+											rl -> rl.setBurstCapacity(40).setReplenishRate(20))
+									.and())
+							.uri("http://localhost"))
 					.build();
+
 		}
 	}
 

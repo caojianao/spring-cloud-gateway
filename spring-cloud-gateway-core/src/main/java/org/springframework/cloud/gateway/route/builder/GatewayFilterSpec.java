@@ -25,16 +25,16 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.cloud.gateway.filter.GatewayFilter;
 import org.springframework.cloud.gateway.filter.OrderedGatewayFilter;
-import org.springframework.cloud.gateway.filter.factory.AddRequestHeaderGatewayFilter;
-import org.springframework.cloud.gateway.filter.factory.AddRequestParameterGatewayFilter;
-import org.springframework.cloud.gateway.filter.factory.AddResponseHeaderGatewayFilter;
-import org.springframework.cloud.gateway.filter.factory.HystrixGatewayFilter;
+import org.springframework.cloud.gateway.filter.factory.AddRequestHeaderGatewayFilterFactory;
+import org.springframework.cloud.gateway.filter.factory.AddRequestParameterGatewayFilterFactory;
+import org.springframework.cloud.gateway.filter.factory.AddResponseHeaderGatewayFilterFactory;
+import org.springframework.cloud.gateway.filter.factory.HystrixGatewayFilterFactory;
 import org.springframework.cloud.gateway.filter.factory.PrefixPathGatewayFilterFactory;
 import org.springframework.cloud.gateway.filter.factory.PreserveHostHeaderGatewayFilterFactory;
 import org.springframework.cloud.gateway.filter.factory.RedirectToGatewayFilterFactory;
 import org.springframework.cloud.gateway.filter.factory.RemoveRequestHeaderGatewayFilterFactory;
 import org.springframework.cloud.gateway.filter.factory.RemoveResponseHeaderGatewayFilterFactory;
-import org.springframework.cloud.gateway.filter.factory.RequestRateLimiterGatewayFilter;
+import org.springframework.cloud.gateway.filter.factory.RequestRateLimiterGatewayFilterFactory;
 import org.springframework.cloud.gateway.filter.factory.RetryGatewayFilterFactory;
 import org.springframework.cloud.gateway.filter.factory.RewritePathGatewayFilterFactory;
 import org.springframework.cloud.gateway.filter.factory.SaveSessionGatewayFilterFactory;
@@ -44,7 +44,6 @@ import org.springframework.cloud.gateway.filter.factory.SetRequestHeaderGatewayF
 import org.springframework.cloud.gateway.filter.factory.SetResponseHeaderGatewayFilterFactory;
 import org.springframework.cloud.gateway.filter.factory.SetStatusGatewayFilterFactory;
 import org.springframework.cloud.gateway.filter.factory.StripPrefixGatewayFilterFactory;
-import org.springframework.cloud.gateway.filter.ratelimit.KeyResolver;
 import org.springframework.cloud.gateway.filter.ratelimit.RateLimiter;
 import org.springframework.cloud.gateway.route.Route;
 import org.springframework.core.Ordered;
@@ -52,8 +51,6 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.tuple.Tuple;
 import org.springframework.web.server.ServerWebExchange;
-
-import com.netflix.hystrix.HystrixObservableCommand;
 
 import static org.springframework.tuple.TupleBuilder.tuple;
 
@@ -104,43 +101,23 @@ public class GatewayFilterSpec extends UriSpec {
 	}
 
 	public GatewayFilterSpec addRequestHeader(String headerName, String headerValue) {
-		return initialize(getBean(AddRequestHeaderGatewayFilter.class).setName(headerName).setValue(headerValue));
+		return initialize(getBean(AddRequestHeaderGatewayFilterFactory.class)
+				.apply(c -> c.setName(headerName).setValue(headerValue)));
 	}
 
 	public GatewayFilterSpec addRequestParameter(String param, String value) {
-		return initialize(getBean(AddRequestParameterGatewayFilter.class).setName(param).setValue(value));
+		return initialize(getBean(AddRequestParameterGatewayFilterFactory.class)
+				.apply(c -> c.setName(param).setValue(value)));
 	}
 
 	public GatewayFilterSpec addResponseHeader(String headerName, String headerValue) {
-		return initialize(getBean(AddResponseHeaderGatewayFilter.class).setName(headerName).setValue(headerValue));
+		return initialize(getBean(AddResponseHeaderGatewayFilterFactory.class)
+				.apply(c -> c.setName(headerName).setValue(headerValue)));
 	}
 
-	public HystrixSpec hystrix(String commandName) {
-		return new HystrixSpec(commandName);
-	}
-
-	public class HystrixSpec {
-
-		private final HystrixGatewayFilter filter;
-
-		public HystrixSpec(String commandName) {
-			filter = getBean(HystrixGatewayFilter.class);
-			filter.setName(commandName);
-		}
-
-		public HystrixSpec fallbackUri(String fallbackUri) {
-			filter.setFallbackUri(fallbackUri);
-			return this;
-		}
-
-		public HystrixSpec setter(HystrixObservableCommand.Setter setter) {
-			filter.setSetter(setter);
-			return this;
-		}
-
-		public GatewayFilterSpec build() {
-			return initialize(filter);
-		}
+	public GatewayFilterSpec hystrix(Consumer<HystrixGatewayFilterFactory.Config> configConsumer) {
+		return initialize(getBean(HystrixGatewayFilterFactory.class)
+				.apply(configConsumer));
 	}
 
 	public GatewayFilterSpec prefixPath(String prefix) {
@@ -179,43 +156,40 @@ public class GatewayFilterSpec extends UriSpec {
 		return initialize(getBean(RemoveResponseHeaderGatewayFilterFactory.class).apply(headerName));
 	}
 
-	public GatewayFilterSpec requestRateLimiter() {
-		return initialize(getBean(RequestRateLimiterGatewayFilter.class));
+	// public GatewayFilterSpec requestRateLimiter() {
+	// 	return initialize(getBean(RequestRateLimiterGatewayFilterFactory.class).apply(config -> {}));
+	// }
+
+    public RequestRateLimiterSpec requestRateLimiter() {
+		return new RequestRateLimiterSpec(getBean(RequestRateLimiterGatewayFilterFactory.class));
 	}
 
-    public <C, T extends RateLimiter<C>> RequestRateLimiterSpec<T, C> requestRateLimiter(Class<T> rateLimiterType) {
-		T rateLimiter = getBean(rateLimiterType);
-		RequestRateLimiterGatewayFilter filter = getBean(RequestRateLimiterGatewayFilter.class);
-		return new RequestRateLimiterSpec<>(filter, rateLimiter);
-	}
+	public class RequestRateLimiterSpec {
+		private final RequestRateLimiterGatewayFilterFactory filter;
 
-	public class RequestRateLimiterSpec<T extends RateLimiter, C> {
-		private RequestRateLimiterGatewayFilter filter;
-		private T rateLimiter;
-
-		public RequestRateLimiterSpec(RequestRateLimiterGatewayFilter filter, T rateLimiter) {
+		public RequestRateLimiterSpec(RequestRateLimiterGatewayFilterFactory filter) {
 			this.filter = filter;
-			this.rateLimiter = rateLimiter;
 		}
 
-		public RequestRateLimiterSpec<T, C> keyResolver(KeyResolver keyResolver) {
-			this.filter.setKeyResolver(keyResolver);
+		public <C, R extends RateLimiter<C>> RequestRateLimiterSpec rateLimiter(Class<R> rateLimiterType,
+																				Consumer<C> configConsumer) {
+			R rateLimiter = getBean(rateLimiterType);
+			C config = rateLimiter.newConfig();
+			configConsumer.accept(config);
+			rateLimiter.getConfig().put(routeBuilder.getId(), config);
 			return this;
+		}
+
+		public GatewayFilterSpec configure(Consumer<RequestRateLimiterGatewayFilterFactory.Config> configConsumer) {
+			initialize(this.filter.apply(configConsumer));
+			return GatewayFilterSpec.this;
 		}
 
 		// useful when nothing to configure
 		public GatewayFilterSpec and() {
-			filter(this.filter);
-			return GatewayFilterSpec.this;
+			return configure(config -> {});
 		}
 
-		@SuppressWarnings("unchecked")
-		public GatewayFilterSpec configure(Consumer<C> consumer) {
-			C config = (C) this.rateLimiter.newConfig();
-			consumer.accept(config);
-			this.rateLimiter.getConfig().put(routeBuilder.getId(), config);
-			return and();
-		}
 	}
 
 	public GatewayFilterSpec rewritePath(String regex, String replacement) {
@@ -286,5 +260,9 @@ public class GatewayFilterSpec extends UriSpec {
 
 	public GatewayFilterSpec stripPrefix(int parts) {
 		return initialize(getBean(StripPrefixGatewayFilterFactory.class).apply(parts));
+	}
+
+	private String routeId() {
+		return routeBuilder.getId();
 	}
 }

@@ -25,14 +25,14 @@ import org.junit.runners.Suite;
 import org.junit.runners.Suite.SuiteClasses;
 import org.junit.runners.model.Statement;
 
-import org.springframework.cloud.gateway.filter.factory.AddRequestHeaderGatewayFilterTests;
-import org.springframework.cloud.gateway.filter.factory.AddRequestParameterGatewayFilterTests;
-import org.springframework.cloud.gateway.filter.factory.HystrixGatewayFilterTests;
+import org.springframework.cloud.gateway.filter.factory.AddRequestHeaderGatewayFilterFactoryTests;
+import org.springframework.cloud.gateway.filter.factory.AddRequestParameterGatewayFilterFactoryTests;
+import org.springframework.cloud.gateway.filter.factory.HystrixGatewayFilterFactoryTests;
 import org.springframework.cloud.gateway.filter.factory.PreserveHostHeaderGatewayFilterFactoryTests;
 import org.springframework.cloud.gateway.filter.factory.RedirectToGatewayFilterFactoryTests;
 import org.springframework.cloud.gateway.filter.factory.RemoveRequestHeaderGatewayFilterFactoryTests;
 import org.springframework.cloud.gateway.filter.factory.RemoveResponseHeaderGatewayFilterFactoryTests;
-import org.springframework.cloud.gateway.filter.factory.RequestRateLimiterGatewayFilterTests;
+import org.springframework.cloud.gateway.filter.factory.RequestRateLimiterGatewayFilterFactoryTests;
 import org.springframework.cloud.gateway.filter.factory.RewritePathGatewayFilterFactoryIntegrationTests;
 import org.springframework.cloud.gateway.filter.factory.RewritePathGatewayFilterFactoryTests;
 import org.springframework.cloud.gateway.filter.factory.SecureHeadersGatewayFilterFactoryTests;
@@ -76,18 +76,18 @@ import static org.junit.Assume.assumeThat;
 		XForwardedHeadersFilterTests.class,
 		// FilterFactory Tests
 		RemoveResponseHeaderGatewayFilterFactoryTests.class,
-		HystrixGatewayFilterTests.class,
+		HystrixGatewayFilterFactoryTests.class,
 		RewritePathGatewayFilterFactoryIntegrationTests.class,
 		RemoveRequestHeaderGatewayFilterFactoryTests.class,
 		SetPathGatewayFilterFactoryTests.class,
 		RewritePathGatewayFilterFactoryTests.class,
 		SetStatusGatewayFilterFactoryTests.class,
 		RedirectToGatewayFilterFactoryTests.class,
-		AddRequestHeaderGatewayFilterTests.class,
+		AddRequestHeaderGatewayFilterFactoryTests.class,
 		SecureHeadersGatewayFilterFactoryTests.class,
-		RequestRateLimiterGatewayFilterTests.class,
+		RequestRateLimiterGatewayFilterFactoryTests.class,
 		SetPathGatewayFilterFactoryIntegrationTests.class,
-		AddRequestParameterGatewayFilterTests.class,
+		AddRequestParameterGatewayFilterFactoryTests.class,
 		SetResponseGatewayFilterFactoryTests.class,
 		PrincipalNameKeyResolverIntegrationTests.class,
 		RedisRateLimiterTests.class,

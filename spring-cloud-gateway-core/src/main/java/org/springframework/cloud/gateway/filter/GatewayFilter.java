@@ -49,6 +49,7 @@ public interface GatewayFilter extends ArgumentHints {
 	 * Lifecycle method for allowing work after configuration, but before the filter is
 	 * run as part of a GatewayFilterChain.
 	 */
+	@Deprecated
 	default void afterConfigurationSet() {
 
 	}

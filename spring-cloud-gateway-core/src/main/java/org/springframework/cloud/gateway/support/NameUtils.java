@@ -17,7 +17,6 @@
 
 package org.springframework.cloud.gateway.support;
 
-import org.springframework.cloud.gateway.filter.GatewayFilter;
 import org.springframework.cloud.gateway.filter.factory.GatewayFilterFactory;
 import org.springframework.cloud.gateway.handler.predicate.RoutePredicate;
 import org.springframework.cloud.gateway.handler.predicate.RoutePredicateFactory;
@@ -38,10 +37,6 @@ public class NameUtils {
 
 	public static String normalizePredicateName(Class<? extends RoutePredicate> clazz) {
 		return clazz.getSimpleName().replace(RoutePredicate.class.getSimpleName(), "");
-	}
-
-	public static String normalizeFilterName(Class<? extends GatewayFilter> clazz) {
-		return clazz.getSimpleName().replace(GatewayFilter.class.getSimpleName(), "");
 	}
 
 	public static String normalizeFilterFactoryName(Class<? extends GatewayFilterFactory> clazz) {

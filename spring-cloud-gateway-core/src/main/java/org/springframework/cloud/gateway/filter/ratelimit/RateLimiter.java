@@ -1,12 +1,13 @@
 package org.springframework.cloud.gateway.filter.ratelimit;
 
-import org.springframework.cloud.gateway.support.Configurable;
+import org.springframework.cloud.gateway.support.StatefulConfigurable;
+
 import reactor.core.publisher.Mono;
 
 /**
  * @author Spencer Gibb
  */
-public interface RateLimiter<C> extends Configurable<C> {
+public interface RateLimiter<C> extends StatefulConfigurable<C> {
 
 	Mono<Response> isAllowed(String routeId, String id);
 

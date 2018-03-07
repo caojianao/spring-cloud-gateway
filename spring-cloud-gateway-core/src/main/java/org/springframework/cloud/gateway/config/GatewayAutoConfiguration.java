@@ -40,19 +40,17 @@ import org.springframework.cloud.gateway.filter.NettyRoutingFilter;
 import org.springframework.cloud.gateway.filter.NettyWriteResponseFilter;
 import org.springframework.cloud.gateway.filter.RouteToRequestUrlFilter;
 import org.springframework.cloud.gateway.filter.WebsocketRoutingFilter;
-import org.springframework.cloud.gateway.filter.annotation.GatewayFilter;
-import org.springframework.cloud.gateway.filter.factory.AddRequestHeaderGatewayFilter;
-import org.springframework.cloud.gateway.filter.factory.AddRequestParameterGatewayFilter;
-import org.springframework.cloud.gateway.filter.factory.AddResponseHeaderGatewayFilter;
-import org.springframework.cloud.gateway.filter.factory.GatewayFilterBeanPostProcessor;
+import org.springframework.cloud.gateway.filter.factory.AddRequestHeaderGatewayFilterFactory;
+import org.springframework.cloud.gateway.filter.factory.AddRequestParameterGatewayFilterFactory;
+import org.springframework.cloud.gateway.filter.factory.AddResponseHeaderGatewayFilterFactory;
 import org.springframework.cloud.gateway.filter.factory.GatewayFilterFactory;
-import org.springframework.cloud.gateway.filter.factory.HystrixGatewayFilter;
+import org.springframework.cloud.gateway.filter.factory.HystrixGatewayFilterFactory;
 import org.springframework.cloud.gateway.filter.factory.PrefixPathGatewayFilterFactory;
 import org.springframework.cloud.gateway.filter.factory.PreserveHostHeaderGatewayFilterFactory;
 import org.springframework.cloud.gateway.filter.factory.RedirectToGatewayFilterFactory;
 import org.springframework.cloud.gateway.filter.factory.RemoveRequestHeaderGatewayFilterFactory;
 import org.springframework.cloud.gateway.filter.factory.RemoveResponseHeaderGatewayFilterFactory;
-import org.springframework.cloud.gateway.filter.factory.RequestRateLimiterGatewayFilter;
+import org.springframework.cloud.gateway.filter.factory.RequestRateLimiterGatewayFilterFactory;
 import org.springframework.cloud.gateway.filter.factory.RetryGatewayFilterFactory;
 import org.springframework.cloud.gateway.filter.factory.RewritePathGatewayFilterFactory;
 import org.springframework.cloud.gateway.filter.factory.SaveSessionGatewayFilterFactory;
@@ -392,35 +390,26 @@ public class GatewayAutoConfiguration {
 	// GatewayFilter Factory beans
 
 	@Bean
-	public GatewayFilterBeanPostProcessor gatewayFilterBeanPostProcessor() {
-		return new GatewayFilterBeanPostProcessor();
+	public AddRequestHeaderGatewayFilterFactory addRequestHeaderGatewayFilterFactory() {
+		return new AddRequestHeaderGatewayFilterFactory();
 	}
 
 	@Bean
-	@GatewayFilter
-	public AddRequestHeaderGatewayFilter addRequestHeaderGatewayFilter() {
-		return new AddRequestHeaderGatewayFilter();
+	public AddRequestParameterGatewayFilterFactory addRequestParameterGatewayFilterFactory() {
+		return new AddRequestParameterGatewayFilterFactory();
 	}
 
 	@Bean
-	@GatewayFilter
-	public AddRequestParameterGatewayFilter addRequestParameterGatewayFilter() {
-		return new AddRequestParameterGatewayFilter();
-	}
-
-	@Bean
-	@GatewayFilter
-	public AddResponseHeaderGatewayFilter addResponseHeaderGatewayFilter() {
-		return new AddResponseHeaderGatewayFilter();
+	public AddResponseHeaderGatewayFilterFactory addResponseHeaderGatewayFilterFactory() {
+		return new AddResponseHeaderGatewayFilterFactory();
 	}
 
 	@Configuration
 	@ConditionalOnClass({HystrixObservableCommand.class, RxReactiveStreams.class})
 	protected static class HystrixConfiguration {
 		@Bean
-		@GatewayFilter
-		public HystrixGatewayFilter hystrixGatewayFilter(DispatcherHandler dispatcherHandler) {
-			return new HystrixGatewayFilter(dispatcherHandler);
+		public HystrixGatewayFilterFactory hystrixGatewayFilterFactory(DispatcherHandler dispatcherHandler) {
+			return new HystrixGatewayFilterFactory(dispatcherHandler);
 		}
 	}
 
@@ -456,10 +445,9 @@ public class GatewayAutoConfiguration {
 	}
 
 	@Bean
-	@GatewayFilter
 	@ConditionalOnBean({RateLimiter.class, KeyResolver.class})
-	public RequestRateLimiterGatewayFilter requestRateLimiterGatewayFilterFactory(RateLimiter rateLimiter, PrincipalNameKeyResolver resolver) {
-		return new RequestRateLimiterGatewayFilter(rateLimiter, resolver);
+	public RequestRateLimiterGatewayFilterFactory requestRateLimiterGatewayFilterFactory(RateLimiter rateLimiter, PrincipalNameKeyResolver resolver) {
+		return new RequestRateLimiterGatewayFilterFactory(rateLimiter, resolver);
 	}
 
 	@Bean

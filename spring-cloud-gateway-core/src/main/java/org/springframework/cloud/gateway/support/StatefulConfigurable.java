@@ -15,21 +15,11 @@
  *
  */
 
-package org.springframework.cloud.gateway.filter.annotation;
+package org.springframework.cloud.gateway.support;
 
-import org.springframework.context.annotation.Scope;
+import java.util.Map;
 
-import java.lang.annotation.Documented;
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
+public interface StatefulConfigurable<C> extends Configurable<C> {
 
-import static org.springframework.beans.factory.config.ConfigurableBeanFactory.SCOPE_PROTOTYPE;
-
-@Target({ElementType.TYPE, ElementType.METHOD})
-@Retention(RetentionPolicy.RUNTIME)
-@Documented
-@Scope(SCOPE_PROTOTYPE)
-public @interface GatewayFilter {
+	Map<String, C> getConfig();
 }

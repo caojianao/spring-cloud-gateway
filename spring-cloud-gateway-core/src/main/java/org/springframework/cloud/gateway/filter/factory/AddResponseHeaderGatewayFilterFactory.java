@@ -17,25 +17,19 @@
 
 package org.springframework.cloud.gateway.filter.factory;
 
-import org.springframework.cloud.gateway.filter.GatewayFilterChain;
-import org.springframework.http.server.reactive.ServerHttpRequest;
-import org.springframework.validation.annotation.Validated;
-import org.springframework.web.server.ServerWebExchange;
-
-import reactor.core.publisher.Mono;
+import org.springframework.cloud.gateway.filter.GatewayFilter;
 
 /**
  * @author Spencer Gibb
  */
-@Validated
-public class AddRequestHeaderGatewayFilter extends AbstractNameValueGatewayFilter<AddRequestHeaderGatewayFilter> {
+public class AddResponseHeaderGatewayFilterFactory extends AbstractNameValueGatewayFilterFactory {
 
 	@Override
-    public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
-        ServerHttpRequest request = exchange.getRequest().mutate()
-                .header(name, value)
-                .build();
+	public GatewayFilter apply(Config config) {
+		return (exchange, chain) -> {
+			exchange.getResponse().getHeaders().add(config.getName(), config.getValue());
 
-        return chain.filter(exchange.mutate().request(request).build());
-    }
+			return chain.filter(exchange);
+		};
+	}
 }

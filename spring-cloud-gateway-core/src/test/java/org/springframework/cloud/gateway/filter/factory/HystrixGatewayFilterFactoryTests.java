@@ -43,7 +43,7 @@ import static org.springframework.boot.test.context.SpringBootTest.WebEnvironmen
 @RunWith(SpringRunner.class)
 @SpringBootTest(webEnvironment = RANDOM_PORT)
 @DirtiesContext
-public class HystrixGatewayFilterTests extends BaseWebClientTests {
+public class HystrixGatewayFilterFactoryTests extends BaseWebClientTests {
 
 	@Test
 	public void hystrixFilterWorks() {
@@ -113,9 +113,7 @@ public class HystrixGatewayFilterTests extends BaseWebClientTests {
 			return builder.routes()
 					.route("hystrix_java", r -> r.host("**.hystrixjava.org")
 							.filters(f -> f.prefixPath("/httpbin")
-									.hystrix("javacmd")
-									.fallbackUri("forward:/fallbackcontroller2")
-									.build())
+									.hystrix(config -> config.setName("javacmd").setFallbackUri("forward:/fallbackcontroller2")))
 							.uri(uri))
 					.build();
 		}
